@@ -1,5 +1,5 @@
 var expect = require('chai').expect;
-var server = require('../server.js');
+var server = require('../server/server.js');
 var supertest = require('supertest');
 
 var request = supertest.agent(server);
