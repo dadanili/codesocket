@@ -2,7 +2,7 @@
 
 
 var  webpackDevConfig =require('./webpack.config.js')
-webpackDevConfig.entry = {};
+webpackDevConfig.devtool = 'inline-source-map';
 
 module.exports = function(config) {
     'use strict';
@@ -36,13 +36,13 @@ module.exports = function(config) {
         preprocessors: {
         //     'node_modules/*': ['browserify'],
         //     'Source/*.js': ['browserify'],
-        //     'utils/*': ['browserify'],
+            'utils/*': ['browserify'],
         //     // 'Source/client/app/index.jsx': ['webpack', 'sourcemap'],
         //     'Source/client/app/**/*.js': ['browserify'],
         //     'Source/client/app/*.js': ['browserify'],
         //     'Source/**/*.js': ['browserify'],
         //     'Spec/*Test.js': ['webpack', 'sourcemap']
-            'tests.webpack.js': [ 'webpack', 'sourcemap' ]
+            'tests.webpack.js': [ 'browserify', 'webpack', 'sourcemap'  ]
 
         },
         browserify: {
@@ -79,7 +79,7 @@ module.exports = function(config) {
         // Set to false to watch files for changes
         singleRun: false,
 
-        // plugins: ["karma-requirejs","karma-jasmine", 'karma-browserify', 'karma-webpack','karma-babel-preprocessor',  'karma-chrome-launcher',
+        // plugins: ["karma-requirejs","karma-jasmine", 'karma-browserify','karma-sourcemap-loader', 'karma-webpack','karma-babel-preprocessor',  'karma-chrome-launcher',
         //     "karma-spec-reporter", 'karma-phantomjs-launcher'],        
        plugins: ["karma-requirejs","karma-jasmine", 'karma-sourcemap-loader', 'karma-browserify', 'karma-webpack','karma-babel-preprocessor', 
            "karma-spec-reporter", 'karma-phantomjs-launcher'],        

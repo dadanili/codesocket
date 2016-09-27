@@ -39,7 +39,7 @@ var app = express();
     // webpackDevHelper = require('./index.dev.js');
 useWebpackMiddleware(app);
 
-app.use(express.static('./src/client'));
+app.use(express.static('./Source/client'));
 app.get('/', function(req, res) {
 	res.send()
 })

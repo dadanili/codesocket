@@ -2,7 +2,7 @@ var path = require('path');
 var webpack = require('webpack');
 var APP_DIR = path.resolve(__dirname, 'Source/client/app');
 
-console.log('=============', path.join(__dirname, 'dist'))
+console.log('=============', APP_DIR)
 module.exports = {
   devtool: 'eval',
   entry: [
@@ -27,8 +27,8 @@ module.exports = {
               APP_DIR,
               path.join(__dirname, 'Spec'),
               path.join(__dirname, 'utils')
-          ],
-      exclude: path.join(__dirname, 'node_modules')
+          ]
+      // exclude: path.join(__dirname, 'node_modules')
     }]
   }
 };
