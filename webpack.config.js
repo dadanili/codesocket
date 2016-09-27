@@ -25,7 +25,7 @@ module.exports = {
       loaders: ['react-hot', 'babel'],
       include: [
               APP_DIR,
-              path.join(__dirname, 'test')
+              path.join(__dirname, 'Spec')
           ],
       exclude: path.join(__dirname, 'node_modules')
     }]

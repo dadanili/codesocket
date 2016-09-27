@@ -1,96 +1,70 @@
-// Karma configuration
-// Generated on Sun Sep 25 2016 23:26:08 GMT-0700 (PDT)
+/* global process: true */
+
+
+var  webpackDevConfig =require('./webpack.config.js')
+webpackDevConfig.entry = {};
 
 module.exports = function(config) {
-  var cfg = {
+    'use strict';
+    
+    config.set({
+        // base path, that will be used to resolve files and exclude
+        basePath: './',
 
-    // base path that will be used to resolve all patterns (eg. files, exclude)
-    basePath: '',
+        frameworks: ['jasmine', 'requirejs'],
+        webpack: webpackDevConfig,
+        webpackMiddleware: {
+          noInfo: true
+        },
+        files: [
+            'Spec/MainKarma.js', {
+            pattern : 'Source/*.js',
+            included : false
+        }, {
+            pattern : 'Spec/*Test.js',
+            included: false
+        }], 
 
+        // list of files to exclude
+        exclude: [
+        ],
+        preprocessors: {
+            './Source/client/app/index.jsx': ['webpack'],
+            './Spec/*Test.js': ['babel']
 
-    // frameworks to use
-    // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine', 'browserify'],
+        },
+        reporters: ['spec'],
 
-    browserify: {
-        debug: true,
-        transform: ['babelify']
-    },
+        // web server port
+        port: 9876,
 
-    // list of files / patterns to load in the browser
-    files: [
-        "node_modules/*",
-        "src/*",
-        "test/*"
-        // 'test/test-main.js'
-    ],
+        // enable / disable colors in the output (reporters and logs)
+        colors: true,
 
+        // level of logging
+        logLevel: config.LOG_INFO,
 
-    // list of files to exclude
-    // exclude: [
-    //     'server/server.js'
-    // ],
+        // enable / disable watching file and executing tests whenever any file changes
+        // CLI --auto-watch --no-auto-watch
+        autoWatch: true,
 
+        // Start these browsers, currently available:
+        // browsers: ['PhantomJS'],
+        browsers: ['Chrome', 'ChromeCanary'],
+        customLaunchers: {
+              Chrome_travis_ci: {
+                  base: 'Chrome',
+                  flags: ['--no-sandbox']
+              }
+          },
+        // If browser does not capture in given timeout [ms], kill it
+        captureTimeout: 20000,
 
-    // preprocess matching files before serving them to the browser
-    // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
-    preprocessors: {
-      'src/**/*.js': ['browserify'],
-      'src/**/*.jsx': ['browserify'],
-      'test/**/*.js': ['browserify']
-    },
-    // babelPreprocessor: {
-    //   options: {
-    //     presets: ['es2015'],
-    //     sourceMap: 'inline'
-    //   }
-    // },
-    // browserify
-    // test results reporter to use
-    // possible values: 'dots', 'progress'
-    // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress'],
+        // Set to false to watch files for changes
+        singleRun: false,
 
-
-    // web server port
-    port: 9876,
-
-
-    // enable / disable colors in the output (reporters and logs)
-    colors: true,
-
-
-    // level of logging
-    // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
-    logLevel: config.LOG_DEBUG,
-
-
-    // enable / disable watching file and executing tests whenever any file changes
-    autoWatch: false,
-
-
-    // start these browsers
-    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome', 'ChromeCanary'],
-    customLaunchers: {
-          Chrome_travis_ci: {
-              base: 'Chrome',
-              flags: ['--no-sandbox']
-          }
-      },
-
-    // Continuous Integration mode
-    // if true, Karma captures browsers, runs the tests and exits
-    singleRun: true,
-
-    // Concurrency level
-    // how many browser should be started simultaneous
-    concurrency: Infinity
-  };
-
-  if (process.env.TRAVIS) {
-      cfg.browsers = ['Chrome_travis_ci'];
-  }
-
-  config.set(cfg);
-}
+        plugins: ["karma-jasmine", 'karma-webpack','karma-babel-preprocessor', "karma-requirejs", 'karma-chrome-launcher',
+            "karma-spec-reporter", 'karma-phantomjs-launcher'],        
+        
+    });
+};
