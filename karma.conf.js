@@ -11,13 +11,18 @@ module.exports = function(config) {
         // base path, that will be used to resolve files and exclude
         basePath: './',
 
-        frameworks: ['jasmine', 'requirejs'],
+        frameworks: ['jasmine', 'requirejs','browserify'],
         webpack: webpackDevConfig,
         webpackMiddleware: {
           noInfo: true
         },
         files: [
-            'Spec/MainKarma.js', {
+        // 'node_modules/react/react.js',
+            'tests.webpack.js',
+            // 'node_modules/*',
+            'Spec/MainKarma.js', 
+            // 'node_modules/path/lib/*.js',
+            {
             pattern : 'Source/*.js',
             included : false
         }, {
@@ -29,9 +34,20 @@ module.exports = function(config) {
         exclude: [
         ],
         preprocessors: {
-            './Source/client/app/index.jsx': ['webpack'],
-            './Spec/*Test.js': ['babel']
+        //     'node_modules/*': ['browserify'],
+        //     'Source/*.js': ['browserify'],
+        //     'utils/*': ['browserify'],
+        //     // 'Source/client/app/index.jsx': ['webpack', 'sourcemap'],
+        //     'Source/client/app/**/*.js': ['browserify'],
+        //     'Source/client/app/*.js': ['browserify'],
+        //     'Source/**/*.js': ['browserify'],
+        //     'Spec/*Test.js': ['webpack', 'sourcemap']
+            'tests.webpack.js': [ 'webpack', 'sourcemap' ]
 
+        },
+        browserify: {
+            debug: true,
+            transform: ['babelify']
         },
         reporters: ['spec'],
 
@@ -49,8 +65,8 @@ module.exports = function(config) {
         autoWatch: true,
 
         // Start these browsers, currently available:
-        // browsers: ['PhantomJS'],
-        browsers: ['Chrome', 'ChromeCanary'],
+        browsers: ['PhantomJS'],
+        // browsers: ['Chrome', 'ChromeCanary'],
         customLaunchers: {
               Chrome_travis_ci: {
                   base: 'Chrome',
@@ -63,8 +79,10 @@ module.exports = function(config) {
         // Set to false to watch files for changes
         singleRun: false,
 
-        plugins: ["karma-jasmine", 'karma-webpack','karma-babel-preprocessor', "karma-requirejs", 'karma-chrome-launcher',
-            "karma-spec-reporter", 'karma-phantomjs-launcher'],        
+        // plugins: ["karma-requirejs","karma-jasmine", 'karma-browserify', 'karma-webpack','karma-babel-preprocessor',  'karma-chrome-launcher',
+        //     "karma-spec-reporter", 'karma-phantomjs-launcher'],        
+       plugins: ["karma-requirejs","karma-jasmine", 'karma-sourcemap-loader', 'karma-browserify', 'karma-webpack','karma-babel-preprocessor', 
+           "karma-spec-reporter", 'karma-phantomjs-launcher'],        
         
     });
 };

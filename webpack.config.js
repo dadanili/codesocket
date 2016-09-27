@@ -1,6 +1,6 @@
 var path = require('path');
 var webpack = require('webpack');
-var APP_DIR = path.resolve(__dirname, 'src/client/app');
+var APP_DIR = path.resolve(__dirname, 'Source/client/app');
 
 console.log('=============', path.join(__dirname, 'dist'))
 module.exports = {
@@ -25,7 +25,8 @@ module.exports = {
       loaders: ['react-hot', 'babel'],
       include: [
               APP_DIR,
-              path.join(__dirname, 'Spec')
+              path.join(__dirname, 'Spec'),
+              path.join(__dirname, 'utils')
           ],
       exclude: path.join(__dirname, 'node_modules')
     }]
