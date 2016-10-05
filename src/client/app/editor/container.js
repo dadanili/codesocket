@@ -42,6 +42,11 @@ class EditorContainer extends React.Component {
       theme: 'snow'
 
       });
+
+    var serverquill = new Quill('#serverEditor')
+    console.log('serverquill', serverquill);
+
+
     document.getElementsByClassName('ql-code-block')[0].click();
     document.getElementsByClassName('ql-toolbar')[0].remove();
     hljs.configure({   // optionally configure hljs
@@ -143,9 +148,11 @@ class EditorContainer extends React.Component {
          // context.myInserts.push(0); 
         }
       };
-
+      // context.props.serverquill.updateContents(delta)
+      // console.log('newquill', serverquill.getText())
       // console.log('myInserts', context.myInserts);
-
+////////////////////server////////////////////
+    // if(olddelta === serverquill.getContents)
 
       // console.log(source);
       if(source !== 'api') {
@@ -167,14 +174,27 @@ class EditorContainer extends React.Component {
     this.props.dispatch({
       type: 'UPDATE_QUILL', 
       quill: quill
+    });    
+    console.log('before setting serverquill', serverquill, this.props.serverquill)
+    this.props.dispatch({
+      type: 'UPDATE_SERVERQUILL', 
+      serverquill: serverquill
     });
+    // console.log('before setting serverquill', serverquill)
 
   } // ComponentDidMount
   saveCode() {
     var contents = this.props.quill.getContents();
     var gettext = this.props.quill.getText();
     
-    console.log(contents);
+    console.log('contents',contents);
+    console.log('gettext',gettext);
+    console.log('serverquill', this.props.serverquill)
+    var serverquillcontent =  this.props.serverquill.getContents();
+    var serverquilltext =  this.props.serverquill.getText();
+    console.log('serverquill', serverquillcontent);
+    console.log('compare server to client', serverquilltext === gettext)
+
     $.ajax({
       url: '/savedoc',
       type: "POST",
@@ -190,6 +210,8 @@ class EditorContainer extends React.Component {
     return(
       <div className="body-container">
         <EditorPresentation saveCode={this.saveCode.bind(this)}/>
+        <div id='serverEditor' >
+        </div>
       </div>
     )
   }
@@ -201,7 +223,9 @@ function mapStateToProps(state){
     myInserts: state.userReducer.myInserts,
     socket: state.sessionReducer.socket,
     room: state.sessionReducer.room,
-    quill: state.sessionReducer.quill
+    quill: state.sessionReducer.quill,
+    serverquill: state.sessionReducer.serverquill,
+    buffer: state.sessionReducer.buffer
   }
 }
 
