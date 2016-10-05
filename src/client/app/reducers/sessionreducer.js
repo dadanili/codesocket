@@ -6,7 +6,8 @@ const sessionInitialState = {
   videoChannelReady: false,
   pc: null,
   buffer: [],
-  serverquill: null
+  serverquill: null,
+  quillHistory: ''
   // serverEditor: []
 }
 
@@ -47,6 +48,13 @@ export default function sessionReducer (state = sessionInitialState, action) {
       return {
         ...state,
         serverquill: action.serverquill
+      }
+    }
+    case 'UPDATE_QUILLHISTORY' : {
+      console.log('i am in reducer for quillHistory', action.quillHistory)
+      return {
+        ...state,
+        quillHistory: action.quillHistory
       }
     }
     case 'DOC_SELECTION_MODAL' : {

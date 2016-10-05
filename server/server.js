@@ -55,6 +55,9 @@ var httpsServer = https.createServer({
   cert: fs.readFileSync('./server/cert.pem')
 }, app);
 
+var history = {
+  // 'history1': []
+}
     // webpackDevHelper = require('./index.dev.js');
 useWebpackMiddleware(app);
 
@@ -85,6 +88,58 @@ app.post('/savedoc', function(req, res) {
   });
 
 
+})
+
+var oTransform = function(newObj, oldObj, callback){
+  console.log('newop', newOp);
+  console.log('old', oldOp);
+  var newOp = newObj.op;
+  var oldOp = oldObj.op;
+
+  var newInsertion = newOp.retain;
+  var oldInsertion = oldOp.retain;
+
+  console.log('newInsertion', newInsertion);
+  console.log('oldinsertion', oldInsertion);
+  if(newInsertion >= oldInsertion){
+    newInsertion++;
+    newOp.retain = newInsertion;
+  } else {
+    oldInsertion++;
+    oldOp.retain = oldInsertion;
+  }
+  console.log('2newop', newOp);
+  console.log('2old', oldOp);
+  callback(newObj);
+  // if(oldOp.)
+  //if item has insert as key
+  //ir item has retain as key
+}
+
+app.post('/addops', function(req, res){
+  console.log('inFlightOp');
+  var inFlightOp = req.body.inFlightOp;
+  console.log('pre inFlightOp', inFlightOp.history );
+  console.log('pre inFlightOp', inFlightOp );
+  console.log('pre inFlightOp', inFlightOp['history'] );
+  console.log('pre inFlightOp', history[inFlightOp.history], history[inFlightOp.history] === true);
+
+  if(history[inFlightOp.history] !== undefined){
+    //change was there already
+      console.log('before transformed. should be obj', inFlightOp);
+    //transform
+    oTransform(inFlightOp, history[inFlightOp.history][0], function(transformed){
+      console.log('transformed. should be obj', transformed);
+      history[inFlightOp.history].push(transformed)
+    })
+
+  } else {
+    history[inFlightOp.history] = [inFlightOp];
+
+  }
+
+  console.log('post inFlightOp', history);
+  res.send(history)
 })
 
 var docExists = function(user, room, callback) {
@@ -125,6 +180,8 @@ app.get('/roomExists', function(req, res){
       res.send(result);
     });
   })
+
+
   // helper.addDocToDB(req.query.user, req.query.room, function(newDoc){
   //   helper.addDoctoUser(req.query.user, req.query.room, function(result){
   //     res.send(false);

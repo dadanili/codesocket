@@ -129,7 +129,7 @@ class EditorContainer extends React.Component {
     console.log('omg', context)
     quill.on('text-change', function(delta,olddelta,source) {
       // console.log('get delta', delta.ops[0],delta.ops[1])
-      // console.log('omg-------------', delta)
+      console.log('omg-------------', delta)
       var arr = [];
       if(source === 'user') {
         if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
@@ -152,7 +152,35 @@ class EditorContainer extends React.Component {
       // console.log('newquill', serverquill.getText())
       // console.log('myInserts', context.myInserts);
 ////////////////////server////////////////////
-    // if(olddelta === serverquill.getContents)
+    
+    if(context.props.serverquill.getText() === context.props.quillHistory){
+      //send change to server
+      if(delta.ops[0].retain === undefined){
+        delta.ops.unshift({retain:0});
+      }
+      console.log('new delta', delta)
+      var inFlightOp = {
+        history: context.props.quillHistory,
+        id: socket.id,
+        op: delta.ops
+      }
+      console.log('inFlightOp', inFlightOp)
+      axios.post('/addops', {inFlightOp: inFlightOp})
+      .then(function(response){
+        console.log('got response from server on inFlightOp')
+      })
+    }
+    // axios.post('/adduser',{user: username})
+    // .then(function(user){
+    //   console.log('new user saved');
+    //   callback(user);
+    // })
+
+
+    context.props.dispatch({
+      type: 'UPDATE_QUILL_HISTORY',
+      quillHistory: context.props.serverquill.getText()
+    })
 
       // console.log(source);
       if(source !== 'api') {
@@ -169,19 +197,31 @@ class EditorContainer extends React.Component {
       
     });
 
-    this.quill = quill;
+    context.quill = quill;
 
-    this.props.dispatch({
+    context.props.dispatch({
       type: 'UPDATE_QUILL', 
       quill: quill
     });    
     console.log('before setting serverquill', serverquill, this.props.serverquill)
-    this.props.dispatch({
+    context.props.dispatch({
       type: 'UPDATE_SERVERQUILL', 
       serverquill: serverquill
+    });    
+    context.props.dispatch({
+      type: 'UPDATE_QUILLHISTORY', 
+      quillHistory: quill.getText()
     });
-    // console.log('before setting serverquill', serverquill)
-
+    console.log('---serverquill text', context.props.quillHistory)
+    console.log('---serverquill text', serverquill.getText())
+    console.log('---serverquill text', serverquill.getText() === context.props.quillHistory)
+    // case 'UPDATE_QUILLHISTORY' : {
+    //   console.log('i am in reducer for quillHistory', action.quillHistory)
+    //   return {
+    //     ...state,
+    //     quillHistory: action.quillHistory
+    //   }
+    // }
   } // ComponentDidMount
   saveCode() {
     var contents = this.props.quill.getContents();
@@ -224,6 +264,7 @@ function mapStateToProps(state){
     socket: state.sessionReducer.socket,
     room: state.sessionReducer.room,
     quill: state.sessionReducer.quill,
+    quillHistory: state.sessionReducer.quillHistory,
     serverquill: state.sessionReducer.serverquill,
     buffer: state.sessionReducer.buffer
   }
