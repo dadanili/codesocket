@@ -159,8 +159,11 @@ class EditorContainer extends React.Component {
           op: delta.ops,
           room: context.props.room
         }
+        console.log('serverquill:', context.props.serverState);
+        console.log('quillHistory:',context.props.quillHistory);
+        console.log('inflight Op:', context.props.inFlightOp);
 
-        if(context.props.serverquill.getText() === context.props.quillHistory && context.props.inFlightOp.length === 0){
+        if(context.props.serverState === context.props.quillHistory && context.props.inFlightOp.length === 0){
           //send change to server
           
           if(delta.ops[0].retain === undefined){
@@ -179,7 +182,9 @@ class EditorContainer extends React.Component {
 
         } else {
           context.props.buffer.push(opPackage);
+          console.log('server state:', context.props.serverquill.getText());
           console.log('buffer:', context.props.buffer);
+
           context.props.dispatch({
             type: 'UPDATE_BUFFER',
             buffer: context.props.buffer
@@ -236,74 +241,129 @@ class EditorContainer extends React.Component {
 
         // console.log('not my own')
         //transform buffer
+        context.props.dispatch({
+          type: 'UPDATE_INCOMINGOP', 
+          incomingOp: transformedOp
+        });
         console.log('my buffer ', context.props.buffer)
-        if(context.props.buffer.length) {
+        
           if(context.props.inFlightOp.length){
             console.log('my inflight ', context.props.inFlightOp)
-
+            //ot
             context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
+
+              context.props.dispatch({
+                type: 'UPDATE_INCOMINGOP', 
+                incomingOp: newTransformedOp
+              });
+              
               context.props.dispatch({
                 type: 'UPDATE_INFLIGHTOP', 
+                inFlightOp: newBridge
+              });
+
+            })
+          }
+          if(context.props.buffer.length){
+            //ot
+            context.oTransform(context.props.incomingOp, context.props.buffer, function(newTransformedOp, newBridge){
+              context.props.dispatch({
+                type: 'UPDATE_INCOMINGOP', 
+                incomingOp: newTransformedOp
+              });
+
+              context.props.dispatch({
+                type: 'UPDATE_BUFFER', 
                 buffer: newBridge
               });
-              context.oTransform(newTransformedOp, context.props.buffer, function(newObj, newBuffer){
-                context.props.dispatch({
-                  type: 'UPDATE_BUFFER', 
-                  buffer: newBuffer
-                });
-                if(newObj.op[0].retain === 0){
-                  // console.log('delete retains')
-                   newObj.op.shift();
-                }
-                // if(newObj.history === quill.getText()){
-                  console.log('all parents eql!, ready to merge')
-                  quill.updateContents({ops:newObj.op}, 'api');
-                  console.log('before updating serverquill', serverOp)
-                  serverquill.updateContents({ops:serverOp}, 'api');
-                  console.log('after updating serverquill', serverquill.getText())
-
-                // } else {
-                  // socket.emit('add inflight op', newObj);
-                // }
-              })  
             })
-          } else {
-            //if there is no inflight
-            context.oTransform(transformedOp, context.props.buffer, function(newObj){
-              if(newObj.op[0].retain === 0){
-                // console.log('delete retains')
-                 newObj.op.shift();
-              }
-              // if(newObj.history === quill.getText()){
-                console.log('all parents eql!, ready to merge')
-                quill.updateContents({ops:newObj.op}, 'api');
-                  console.log('before updating serverquill', serverOp)
-                serverquill.updateContents({ops:serverOp}, 'api');
-
-              // } else {
-                // socket.emit('add inflight op', newObj);
-              // }
-            })
-            
           }
-        } else {
-          //if no buffer and other people's changes.
-          //just apply
+          console.log('before finding 0 context.props.incomingOp.op', context.props.incomingOp.op)
 
-          if(transformedOp.op[0].retain === 0){
+          if(context.props.incomingOp.op[0].retain === 0){
             // console.log('delete retains')
-            transformedOp.op.shift();
+             context.props.incomingOp.op.shift();
           }
-          // if(newObj.history === quill.getText()){
-            console.log('all parents eql!, ready to merge')
-            quill.updateContents({ops:transformedOp.op}, 'api');
-            console.log('before updating serverquill', serverOp)
-            serverquill.updateContents({ops:serverOp}, 'api');
+          console.log('after finding 0 context.props.incomingOp.op', context.props.incomingOp.op)
+          quill.updateContents({ops:context.props.incomingOp.op}, 'api');
+          
+          console.log('before updating serverquill', serverOp)
+          
+          serverquill.updateContents({ops:serverOp}, 'api');
+          context.props.dispatch({
+            type: 'UPDATE_SERVERSTATE', 
+            serverState: serverquill.getText()
+          });
+          // apply result to 
 
-          // } else {
-          //   socket.emit('add inflight op', newObj);
-          // }
-        }
+
+        //   console.log('incoming geting transformed-------------')
+        //   if(context.props.inFlightOp.length){
+        //     console.log('my inflight ', context.props.inFlightOp)
+
+        //     context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
+        //       context.props.dispatch({
+        //         type: 'UPDATE_INFLIGHTOP', 
+        //         inFlightOp: newBridge
+        //       });
+        //       context.oTransform(newTransformedOp, context.props.buffer, function(newObj, newBuffer){
+        //         context.props.dispatch({
+        //           type: 'UPDATE_BUFFER', 
+        //           buffer: newBuffer
+        //         });
+        //         if(newObj.op[0].retain === 0){
+        //           // console.log('delete retains')
+        //            newObj.op.shift();
+        //         }
+        //         // if(newObj.history === quill.getText()){
+        //           console.log('all parents eql!, ready to merge')
+        //           quill.updateContents({ops:newObj.op}, 'api');
+        //           console.log('before updating serverquill', serverOp)
+        //           serverquill.updateContents({ops:serverOp}, 'api');
+        //           console.log('after updating serverquill', serverquill.getText())
+
+        //         // } else {
+        //           // socket.emit('add inflight op', newObj);
+        //         // }
+        //       })  
+        //     })
+        //   } else {
+        //     //if there is no inflight
+        //     context.oTransform(transformedOp, context.props.buffer, function(newObj){
+        //       if(newObj.op[0].retain === 0){
+        //         // console.log('delete retains')
+        //          newObj.op.shift();
+        //       }
+        //       // if(newObj.history === quill.getText()){
+        //         console.log('all parents eql!, ready to merge')
+        //         quill.updateContents({ops:newObj.op}, 'api');
+        //           console.log('before updating serverquill', serverOp)
+        //         serverquill.updateContents({ops:serverOp}, 'api');
+
+        //       // } else {
+        //         // socket.emit('add inflight op', newObj);
+        //       // }
+        //     })
+            
+        //   }
+        // } else {
+        //   //if no buffer and other people's changes.
+        //   //just apply
+
+        //   if(transformedOp.op[0].retain === 0){
+        //     // console.log('delete retains')
+        //     transformedOp.op.shift();
+        //   }
+        //   // if(newObj.history === quill.getText()){
+        //     console.log('all parents eql!, ready to merge')
+        //     quill.updateContents({ops:transformedOp.op}, 'api');
+        //     console.log('before updating serverquill', serverOp)
+        //     serverquill.updateContents({ops:serverOp}, 'api');
+
+        //   // } else {
+        //   //   socket.emit('add inflight op', newObj);
+        //   // }
+        // }
       } else {
         console.log('my own changes! ---------------------')
         console.log('updating server', serverOp)
@@ -473,7 +533,9 @@ function mapStateToProps(state){
     quillHistory: state.sessionReducer.quillHistory,
     serverquill: state.sessionReducer.serverquill,
     buffer: state.sessionReducer.buffer,
-    inFlightOp: state.sessionReducer.inFlightOp
+    inFlightOp: state.sessionReducer.inFlightOp,
+    incomingOp: state.sessionReducer.incomingOp,
+    serverState: state.sessionReducer.serverState
   }
 }
 

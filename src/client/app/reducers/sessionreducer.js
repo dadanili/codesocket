@@ -8,7 +8,9 @@ const sessionInitialState = {
   buffer: [],
   serverquill: null,
   quillHistory: '',
-  inFlightOp: []
+  inFlightOp: [],
+  incomingOp: {},
+  serverState: ''
   // serverEditor: []
 }
 
@@ -18,6 +20,18 @@ export default function sessionReducer (state = sessionInitialState, action) {
      return {
        ...state, 
        socket: action.socket
+     }
+    }  
+    case 'UPDATE_SERVERSTATE' : {
+     return {
+       ...state, 
+       serverState: action.serverState
+     }
+    }    
+    case 'UPDATE_INCOMINGOP' : {
+     return {
+       ...state, 
+       incomingOp: action.incomingOp
      }
     }    
     case 'UPDATE_BUFFER' : {
