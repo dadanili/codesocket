@@ -216,7 +216,8 @@ io.on('connection', function(socket){
 
   socket.on('add inflight op', function(inFlightOp){
 
-    console.log('inFlightOp', inFlightOp, inFlightOp.history, inFlightOp.op);
+    console.log('inFlightOp', inFlightOp);
+    console.log('inFlightOp', inFlightOp.history);
     console.log('inFlightOp', inFlightOp.history);
     console.log('pre History', history)
     // // console.log('pre inFlightOp', inFlightOp.history );

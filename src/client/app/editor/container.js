@@ -152,6 +152,12 @@ class EditorContainer extends React.Component {
 
         console.log('serverquill:', context.props.serverquill.getText());
         console.log('quill:', context.props.quillHistory);
+        var opPackage = {
+          history: context.props.quillHistory,
+          id: socket.id,
+          op: delta.ops,
+          room: context.props.room
+        }
 
         if(context.props.serverquill.getText() === context.props.quillHistory){
           //send change to server
@@ -162,15 +168,17 @@ class EditorContainer extends React.Component {
 
           console.log('my current room', context.props.room)
           console.log('woo new delta', delta)
-          var inFlightOp = {
-            history: context.props.quillHistory,
-            id: socket.id,
-            op: delta.ops,
-            room: context.props.room
-          }
+          var inFlightOp = opPackage;
           console.log('a inFlightOp', inFlightOp, context.props.room)
           socket.emit('add inflight op', inFlightOp)
 
+        } else {
+          context.props.buffer.push(opPackage);
+          console.log('props:', context.props.buffer);
+          context.props.dispatch({
+            type: 'UPDATE_BUFFER',
+            buffer: context.props.buffer
+          })
         }
       };
       // context.props.serverquill.updateContents(delta)
@@ -215,9 +223,17 @@ class EditorContainer extends React.Component {
       }
       if(transformedOp.id !== socket.id){
         console.log('not my own')
+        //transform buffer
         quill.updateContents({ops:transformedOp.op}, 'api');
       } else {
         //flush buffer
+        var inFlightOp = context.props.buffer[0];
+        console.log('in flight', inFlightOp)
+        socket.emit('add inflight op', inFlightOp);
+        context.props.dispatch({
+          type: 'UPDATE_BUFFER',
+          buffer: context.props.buffer.slice(1)
+        })
         console.log('my own change')
       }
       serverquill.updateContents({ops:transformedOp.op}, 'api');
