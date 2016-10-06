@@ -131,6 +131,8 @@ class EditorContainer extends React.Component {
       // console.log('get delta', delta.ops[0],delta.ops[1])
       console.log('omg-------------', delta)
       var arr = [];
+
+      console.log('user-------------', source)
       if(source === 'user') {
         if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
           console.log('before dispatch',context, context.props.myInserts)
@@ -147,30 +149,34 @@ class EditorContainer extends React.Component {
           })
          // context.myInserts.push(0); 
         }
+
+
+        if(context.props.serverquill.getText() === context.props.quillHistory){
+          //send change to server
+          
+          if(delta.ops[0].retain === undefined){
+            delta.ops.unshift({retain:0});
+          }
+
+          console.log('my current room', context.props.room)
+          console.log('woo new delta', delta)
+          var inFlightOp = {
+            history: context.props.quillHistory,
+            id: socket.id,
+            op: delta.ops,
+            room: context.props.room
+          }
+          console.log('a inFlightOp', inFlightOp, context.props.room)
+          socket.emit('add inflight op', inFlightOp)
+
+        }
       };
       // context.props.serverquill.updateContents(delta)
       // console.log('newquill', serverquill.getText())
       // console.log('myInserts', context.myInserts);
 ////////////////////server////////////////////
     
-    if(context.props.serverquill.getText() === context.props.quillHistory){
-      //send change to server
-      if(delta.ops[0].retain === undefined){
-        delta.ops.unshift({retain:0});
-      }
 
-      console.log('my current room', context.props.room)
-      console.log('woo new delta', delta)
-      var inFlightOp = {
-        history: context.props.quillHistory,
-        id: socket.id,
-        op: delta.ops,
-        room: context.props.room
-      }
-      console.log('a inFlightOp', inFlightOp, context.props.room)
-      socket.emit('add inflight op', inFlightOp)
-
-    }
     // axios.post('/adduser',{user: username})
     // .then(function(user){
     //   console.log('new user saved');
@@ -198,17 +204,21 @@ class EditorContainer extends React.Component {
       
     });
 
-    socket.on('newOp', function(transformedOp){
-      console.log('got transformation:', transformedOp);
+    context.props.socket.on('newOp', function(transformedOp){
+      console.log('got transformation:', transformedOp.op);
       console.log('got transformation:', transformedOp.id, socket.id);
+      if(transformedOp.op[0].retain === 0){
+        console.log('delete retains')
+         transformedOp.op.shift();
+      }
       if(transformedOp.id !== socket.id){
         console.log('not my own')
-        quill.updateContents(transformedOp, 'api');
+        quill.updateContents({ops:transformedOp.op}, 'api');
       } else {
         //flush buffer
         console.log('my own change')
       }
-      // serverquill.updateContents(transformedOp, 'api');
+      serverquill.updateContents({ops:transformedOp.op}, 'api');
 
     })
 

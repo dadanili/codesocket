@@ -218,7 +218,7 @@ io.on('connection', function(socket){
 
     console.log('inFlightOp', inFlightOp, inFlightOp.history, inFlightOp.op);
     console.log('inFlightOp', inFlightOp.history);
-
+    console.log('pre History', history)
     // // console.log('pre inFlightOp', inFlightOp.history );
     // console.log('pre inFlightOp', inFlightOp );
     // console.log('pre inFlightOp', inFlightOp['history'] );
@@ -231,7 +231,7 @@ io.on('connection', function(socket){
       oTransform(inFlightOp, history[inFlightOp.room][inFlightOp.history][0], function(transformed){
         console.log('transformed. should be obj', transformed);
         console.log('room', inFlightOp.room);
-        socket.broadcast.to(inFlightOp.room).emit('newOp', transformed);
+        io.sockets.in(inFlightOp.room).emit('newOp', transformed);
 
         history[inFlightOp.room][inFlightOp.history].push(transformed)
       })
@@ -242,7 +242,9 @@ io.on('connection', function(socket){
       var parent = inFlightOp.history;
       history[inFlightOp.room][parent] = [inFlightOp];
       console.log('room:-', inFlightOp.room)
-      socket.broadcast.to(inFlightOp.room).emit('newOp', inFlightOp);
+      io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
+
+      // socket.broadcast.to(inFlightOp.room).emit('newOp', inFlightOp);
 
     }
 
@@ -441,32 +443,32 @@ io.on('connection', function(socket){
   
   // *********** Begin Quill Socket ************
   //console.log('a user connected');
-  socket.on('typed', function(delta) {
-    commands.push(delta)
-    console.log(commands);
-    // socket.broadcast.emit('receive',delta);
-    // console.log('socket id', socket.id)
-    // console.log('socket rooms', socket.rooms)
+  // socket.on('typed', function(delta) {
+  //   commands.push(delta)
+  //   console.log(commands);
+  //   // socket.broadcast.emit('receive',delta);
+  //   // console.log('socket id', socket.id)
+  //   // console.log('socket rooms', socket.rooms)
 
-    var clientID = socket.id;
-    var clientRooms = Object.keys(socket.rooms).filter(function(aRoom) {
-      return (aRoom === clientID) ? false : true;
-    });
-    console.log('rooms', clientRooms, clientID)
-    clientRooms.forEach(function(aRoom) {
-      console.log('===========', aRoom, clientID)
-      socket.broadcast.to(aRoom).emit('receive', delta);
-    });
-  });
+  //   var clientID = socket.id;
+  //   var clientRooms = Object.keys(socket.rooms).filter(function(aRoom) {
+  //     return (aRoom === clientID) ? false : true;
+  //   });
+  //   console.log('rooms', clientRooms, clientID)
+  //   clientRooms.forEach(function(aRoom) {
+  //     console.log('===========', aRoom, clientID)
+  //     socket.broadcast.to(aRoom).emit('receive', delta);
+  //   });
+  // });
 
-  socket.on('disconnect', function(){
-    console.log('user disconnected');
-  });
+  // socket.on('disconnect', function(){
+  //   console.log('user disconnected');
+  // });
 
-  socket.on('changesToApply', function(index){
-    console.log('oldIndex', index);
-    socket.broadcast.emit('done', index);
-  })
+  // socket.on('changesToApply', function(index){
+  //   console.log('oldIndex', index);
+  //   socket.broadcast.emit('done', index);
+  // })
 
 
 
