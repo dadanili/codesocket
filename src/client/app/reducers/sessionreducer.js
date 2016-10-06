@@ -8,7 +8,7 @@ const sessionInitialState = {
   buffer: [],
   serverquill: null,
   quillHistory: '',
-  inFlightOp: {}
+  inFlightOp: []
   // serverEditor: []
 }
 

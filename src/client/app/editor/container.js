@@ -129,10 +129,10 @@ class EditorContainer extends React.Component {
 
     quill.on('text-change', function(delta,olddelta,source) {
       // console.log('get delta', delta.ops[0],delta.ops[1])
-      // console.log('omg-------------', delta)
+      console.log('omg-------------', delta)
       var arr = [];
 
-      // console.log('user-------------', source)
+      console.log('user-------------', source)
       if(source === 'user') {
         ///////////////////
         if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
@@ -168,18 +168,18 @@ class EditorContainer extends React.Component {
           }
 
           // console.log('my current room', context.props.room)
-          // console.log('woo new delta', delta)
+          console.log('woo new delta', delta)
           var inFlightOp = opPackage;
           context.props.dispatch({
             type: 'UPDATE_INFLIGHTOP',
-            inFlightOp: inFlightOp
+            inFlightOp: [inFlightOp]
           })
-          // console.log('a inFlightOp', context.props.inFlightOp)
-          socket.emit('add inflight op', context.props.inFlightOp)
+          console.log('a inFlightOp', inFlightOp)
+          socket.emit('add inflight op', inFlightOp)
 
         } else {
           context.props.buffer.push(opPackage);
-          // console.log('props:', context.props.buffer);
+          console.log('buffer:', context.props.buffer);
           context.props.dispatch({
             type: 'UPDATE_BUFFER',
             buffer: context.props.buffer
@@ -220,6 +220,7 @@ class EditorContainer extends React.Component {
     });
 
     context.props.socket.on('newOp', function(transformedOp){
+      console.log('got transformation:', transformedOp);
       console.log('got transformation:', transformedOp.op);
       // console.log('got transformation:', transformedOp.id, socket.id);
       if(transformedOp.op[0].retain === 0){
@@ -235,20 +236,61 @@ class EditorContainer extends React.Component {
         //transform buffer
         // console.log('my buffer ', context.props.buffer)
         if(context.props.buffer.length) {
-          context.oTransform(transformedOp, context.props.buffer, function(newObj){
-            if(newObj.op[0].retain === 0){
-              // console.log('delete retains')
-               newObj.op.shift();
-            }
-            quill.updateContents({ops:newObj.op}, 'api');
-          })
+          if(context.props.inFlightOp.length){
+            context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
+              this.props.dispatch({
+                type: 'UPDATE_INFLIGHTOP', 
+                buffer: newBridge
+              });
+              context.oTransform(newTransformedOp, context.props.buffer, function(newObj, newBuffer){
+                this.props.dispatch({
+                  type: 'UPDATE_BUFFER', 
+                  buffer: newBuffer
+                });
+                if(newObj.op[0].retain === 0){
+                  // console.log('delete retains')
+                   newObj.op.shift();
+                }
+                // if(newObj.history === quill.getText()){
+                  console.log('all parents eql!, ready to merge')
+                  quill.updateContents({ops:newObj.op}, 'api');
+                // } else {
+                  // socket.emit('add inflight op', newObj);
+                // }
+              })  
+            })
+          } else {
+            context.oTransform(transformedOp, context.props.buffer, function(newObj){
+              if(newObj.op[0].retain === 0){
+                // console.log('delete retains')
+                 newObj.op.shift();
+              }
+              // if(newObj.history === quill.getText()){
+                console.log('all parents eql!, ready to merge')
+                quill.updateContents({ops:newObj.op}, 'api');
+              // } else {
+                // socket.emit('add inflight op', newObj);
+              // }
+            })
+            
+          }
         } else {
+
+          context.props.dispatch({
+            type: 'UPDATE_INFLIGHTOP',
+            inFlightOp: []
+          })
+
           if(transformedOp.op[0].retain === 0){
             // console.log('delete retains')
             transformedOp.op.shift();
           }
-          quill.updateContents({ops:transformedOp.op}, 'api');
-
+          // if(newObj.history === quill.getText()){
+            console.log('all parents eql!, ready to merge')
+            quill.updateContents({ops:transformedOp.op}, 'api');
+          // } else {
+          //   socket.emit('add inflight op', newObj);
+          // }
         }
       } else {
         //flush buffer
@@ -262,10 +304,10 @@ class EditorContainer extends React.Component {
 
           context.props.dispatch({
             type: 'UPDATE_INFLIGHTOP',
-            inFlightOp: inFlightOp
+            inFlightOp: [inFlightOp]
           })
 
-          socket.emit('add inflight op', context.props.inFlightOp);
+          socket.emit('add inflight op', inFlightOp);
           context.props.dispatch({
             type: 'UPDATE_BUFFER',
             buffer: context.props.buffer.slice(1)
@@ -303,12 +345,12 @@ class EditorContainer extends React.Component {
     // }
   } // ComponentDidMount
 
-  oTransform(newObj, buffer, callback){
+  oTransform(newObj, bridge, callback){
     console.log('newop', newObj);
-    console.log('old', buffer);
+    console.log('old', bridge);
     var newOp = newObj.op[0];
-    for(var i = 0; i < buffer.length; i++){
-      var oldOp = buffer[i].op;
+    for(var i = 0; i < bridge.length; i++){
+      var oldOp = bridge[i].op[0];
       //oldop is an array of arrays of one op
       console.log('oldOp', oldOp);
 
@@ -324,17 +366,14 @@ class EditorContainer extends React.Component {
         oldInsertion++;
         oldOp.retain = oldInsertion;
       }
-      console.log('2buffer', buffer);
+      console.log('2buffer', bridge);
       console.log('2op', newObj);
 
     }
     //update buffer
     console.log('final update op', newObj)
-    callback(newObj);
-    this.props.dispatch({
-      type: 'UPDATE_BUFFER', 
-      buffer: buffer
-    });
+    callback(newObj, bridge);
+
     // if(oldOp.)
     //if item has insert as key
     //ir item has retain as key
