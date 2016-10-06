@@ -227,6 +227,13 @@ class EditorContainer extends React.Component {
       
     });
 
+    context.props.socket.on('clear inflight', function(inFlightOp){
+      console.log('in clear inflight!!------', inFlightOp)
+      context.props.dispatch({
+        type: 'UPDATE_INFLIGHTOP', 
+        inFlightOp: []
+      });
+    })
     context.props.socket.on('newOp', function(transformedOp){
       console.log('got transformation:', transformedOp);
       console.log('got transformation:', transformedOp.op);
@@ -235,10 +242,13 @@ class EditorContainer extends React.Component {
       if(transformedOp.op[0].retain === 0){
         console.log('delete retains 0');
         var serverOpRetain = 0;
-        var serverOpInsert = transformedOp.op[1].insert
+        var serverOpInsert = transformedOp.op[1].insert;
+        var serverOp = [{insert: serverOpInsert}]
+
       } else {
         var serverOpRetain = transformedOp.op[0].retain;
         var serverOpInsert = transformedOp.op[1].insert;
+        var serverOp = [{retain: serverOpRetain}, {insert: serverOpInsert}]
       }
 
       if(transformedOp.id !== socket.id){
@@ -255,7 +265,7 @@ class EditorContainer extends React.Component {
           if(context.props.inFlightOp.length){
             console.log('getting transformed by inflight ', context.props.inFlightOp)
             //ot
-            context.oTransform(transformedOp, [context.props.inFlightOp], function(newTransformedOp, newBridge){
+            context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
 
               context.props.dispatch({
                 type: 'UPDATE_INCOMINGOP', 
@@ -294,11 +304,7 @@ class EditorContainer extends React.Component {
           quill.updateContents({ops:context.props.incomingOp.op}, 'api');
           
           console.log('before updating serverquill', serverOp)
-          if(serverOpRetain === 0){
-            var serverOp = [{insert: serverOpInsert}]
-          } else {
-            var serverOp = [{retain: serverOpRetain}, {insert: serverOpInsert}]
-          }
+
 
           serverquill.updateContents({ops:serverOp}, 'api');
           context.props.dispatch({
@@ -471,7 +477,7 @@ class EditorContainer extends React.Component {
 
       console.log('newInsertion', newInsertion);
       console.log('oldinsertion', oldInsertion);
-      if(newInsertion >= oldInsertion){
+      if(newInsertion > oldInsertion){
         newInsertion++;
         newOp.retain = newInsertion;
       } else {
@@ -479,7 +485,7 @@ class EditorContainer extends React.Component {
         oldInsertion++;
         oldOp.retain = oldInsertion;
         console.log('buffer history before', oldHistory)
-        oldHistory = oldHistory.slice(0, newInsertion) + bridge[i].op[1].insert + oldHistory.slice(newInsertion);
+        oldHistory = oldHistory.slice(0, newInsertion) + newObj.op[1].insert + oldHistory.slice(newInsertion);
         console.log('buffer history after', oldHistory)
         bridge[i].history = oldHistory;
       }

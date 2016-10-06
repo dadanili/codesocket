@@ -220,6 +220,7 @@ io.on('connection', function(socket){
     console.log('----------------------started')
     console.log('inFlightOp', inFlightOp);
     // console.log('pre History', history)
+    io.to(socket.id).emit('clear inflight', inFlightOp);
 
     if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
       //change was there already
