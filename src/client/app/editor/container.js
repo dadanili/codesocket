@@ -308,7 +308,8 @@ class EditorContainer extends React.Component {
     console.log('old', buffer);
     var newOp = newObj.op[0];
     for(var i = 0; i < buffer.length; i++){
-      var oldOp = buffer[i][0];
+      var oldOp = buffer[i].op;
+      //oldop is an array of arrays of one op
       console.log('oldOp', oldOp);
 
       var newInsertion = newOp.retain;
