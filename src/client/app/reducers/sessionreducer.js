@@ -7,7 +7,8 @@ const sessionInitialState = {
   pc: null,
   buffer: [],
   serverquill: null,
-  quillHistory: ''
+  quillHistory: '',
+  inFlightOp: {}
   // serverEditor: []
 }
 
@@ -23,6 +24,13 @@ export default function sessionReducer (state = sessionInitialState, action) {
      return {
        ...state, 
        buffer: action.buffer
+     }
+    }  
+    case 'UPDATE_INFLIGHTOP' : {
+      console.log('in in flight reducer')
+     return {
+       ...state, 
+       inFlightOp: action.inFlightOp
      }
     }    
     case 'VIDEO_CHANNEL_READY' : {

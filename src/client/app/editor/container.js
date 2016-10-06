@@ -169,8 +169,12 @@ class EditorContainer extends React.Component {
           console.log('my current room', context.props.room)
           console.log('woo new delta', delta)
           var inFlightOp = opPackage;
-          console.log('a inFlightOp', inFlightOp, context.props.room)
-          socket.emit('add inflight op', inFlightOp)
+          context.props.dispatch({
+            type: 'UPDATE_INFLIGHTOP',
+            inFlightOp: inFlightOp
+          })
+          console.log('a inFlightOp', context.props.inFlightOp)
+          socket.emit('add inflight op', context.props.inFlightOp)
 
         } else {
           context.props.buffer.push(opPackage);
@@ -227,14 +231,26 @@ class EditorContainer extends React.Component {
         quill.updateContents({ops:transformedOp.op}, 'api');
       } else {
         //flush buffer
-        var inFlightOp = context.props.buffer[0];
-        console.log('in flight', inFlightOp)
-        socket.emit('add inflight op', inFlightOp);
-        context.props.dispatch({
-          type: 'UPDATE_BUFFER',
-          buffer: context.props.buffer.slice(1)
-        })
-        console.log('my own change')
+          console.log('my own change')
+          console.log('buffer', context.props.buffer)
+
+        if(context.props.buffer.length){
+          console.log('in processing buffer')
+          var inFlightOp = context.props.buffer[0];
+          console.log('in flight', inFlightOp);
+
+          context.props.dispatch({
+            type: 'UPDATE_INFLIGHTOP',
+            inFlightOp: inFlightOp
+          })
+
+          socket.emit('add inflight op', context.props.inFlightOp);
+          context.props.dispatch({
+            type: 'UPDATE_BUFFER',
+            buffer: context.props.buffer.slice(1)
+          })
+        }
+
       }
       serverquill.updateContents({ops:transformedOp.op}, 'api');
 
@@ -309,7 +325,8 @@ function mapStateToProps(state){
     quill: state.sessionReducer.quill,
     quillHistory: state.sessionReducer.quillHistory,
     serverquill: state.sessionReducer.serverquill,
-    buffer: state.sessionReducer.buffer
+    buffer: state.sessionReducer.buffer,
+    inFlightOp: state.sessionReducer.inFlightOp
   }
 }
 

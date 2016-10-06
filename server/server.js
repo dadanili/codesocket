@@ -217,8 +217,6 @@ io.on('connection', function(socket){
   socket.on('add inflight op', function(inFlightOp){
 
     console.log('inFlightOp', inFlightOp);
-    console.log('inFlightOp', inFlightOp.history);
-    console.log('inFlightOp', inFlightOp.history);
     console.log('pre History', history)
     // // console.log('pre inFlightOp', inFlightOp.history );
     // console.log('pre inFlightOp', inFlightOp );
@@ -237,9 +235,16 @@ io.on('connection', function(socket){
         history[inFlightOp.room][inFlightOp.history].push(transformed)
       })
 
-    } else {
+    } else if (history[inFlightOp.room] === undefined) {
+      console.log('no room yet')
       history[inFlightOp.room] = {};
       console.log(inFlightOp.history)
+      var parent = inFlightOp.history;
+      history[inFlightOp.room][parent] = [inFlightOp];
+      console.log('room:-', inFlightOp.room)
+      io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
+    } else {
+      console.log('room but no parent/conflict')
       var parent = inFlightOp.history;
       history[inFlightOp.room][parent] = [inFlightOp];
       console.log('room:-', inFlightOp.room)
