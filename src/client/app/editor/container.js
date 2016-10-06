@@ -205,17 +205,17 @@ class EditorContainer extends React.Component {
     })
 
       // console.log(source);
-      if(source !== 'api') {
-        for(var i = 0; i < 2; i++) {
-          if(delta.ops[i] !== undefined) {
-            // console.log(delta.ops[i])
-            arr.push(delta.ops[i])
-          }
-        }
-        socket.emit('typed', JSON.stringify(arr));
-        arr = [];
+      // if(source !== 'api') {
+      //   for(var i = 0; i < 2; i++) {
+      //     if(delta.ops[i] !== undefined) {
+      //       // console.log(delta.ops[i])
+      //       arr.push(delta.ops[i])
+      //     }
+      //   }
+      //   socket.emit('typed', JSON.stringify(arr));
+      //   arr = [];
 
-      }
+      // }
       
     });
 
@@ -225,11 +225,10 @@ class EditorContainer extends React.Component {
       console.log('got new thing! ==========================')
       // console.log('got transformation:', transformedOp.id, socket.id);
       if(transformedOp.op[0].retain === 0){
-        console.log('delete retains 0')
-        serverquill.updateContents({ops:transformedOp.op.slice(1)}, 'api');
-
+        console.log('delete retains 0');
+        var serverOp = transformedOp.op.slice(1)
       } else {
-        serverquill.updateContents({ops:transformedOp.op}, 'api');
+        var serverOp = transformedOp.op.slice();
       }
 
       if(transformedOp.id !== socket.id){
@@ -259,6 +258,10 @@ class EditorContainer extends React.Component {
                 // if(newObj.history === quill.getText()){
                   console.log('all parents eql!, ready to merge')
                   quill.updateContents({ops:newObj.op}, 'api');
+                  console.log('before updating serverquill', serverOp)
+                  serverquill.updateContents({ops:serverOp}, 'api');
+                  console.log('after updating serverquill', serverquill.getText())
+
                 // } else {
                   // socket.emit('add inflight op', newObj);
                 // }
@@ -274,6 +277,9 @@ class EditorContainer extends React.Component {
               // if(newObj.history === quill.getText()){
                 console.log('all parents eql!, ready to merge')
                 quill.updateContents({ops:newObj.op}, 'api');
+                  console.log('before updating serverquill', serverOp)
+                serverquill.updateContents({ops:serverOp}, 'api');
+
               // } else {
                 // socket.emit('add inflight op', newObj);
               // }
@@ -291,12 +297,20 @@ class EditorContainer extends React.Component {
           // if(newObj.history === quill.getText()){
             console.log('all parents eql!, ready to merge')
             quill.updateContents({ops:transformedOp.op}, 'api');
+            console.log('before updating serverquill', serverOp)
+            serverquill.updateContents({ops:serverOp}, 'api');
+
           // } else {
           //   socket.emit('add inflight op', newObj);
           // }
         }
       } else {
         console.log('my own changes! ---------------------')
+        console.log('updating server', serverOp)
+
+        serverquill.updateContents({ops:serverOp}, 'api');
+
+        console.log('after updating server', serverquill.getText())
 
         //my changes
         //flush buffer
@@ -305,12 +319,14 @@ class EditorContainer extends React.Component {
             type: 'UPDATE_INFLIGHTOP',
             inFlightOp: []
           })
+          var buffer = context.props.buffer.slice()
+          console.log('buffer', buffer)
+          console.log('buffer length', buffer.length)
 
-          console.log('buffer', context.props.buffer)
-
-        if(context.props.buffer.length){
+        if(buffer.length){
+          console.log('i am in buffer length')
           // console.log('in processing buffer')
-          var inFlightOp = context.props.buffer[0];
+          var inFlightOp = buffer[0];
           // console.log('in flight', inFlightOp);
 
           context.props.dispatch({
@@ -323,7 +339,7 @@ class EditorContainer extends React.Component {
           socket.emit('add inflight op', inFlightOp);
           context.props.dispatch({
             type: 'UPDATE_BUFFER',
-            buffer: context.props.buffer.slice(1)
+            buffer: buffer.slice(1)
           })
         }
 
@@ -425,8 +441,11 @@ class EditorContainer extends React.Component {
       console.log('op', op)
       this.props.quill.updateContents({ops: op}, 'user');
     }
-    var freq = Math.floor(Math.random()*500)
+    var freq = Math.floor(Math.random()*500 + 300)
     this.typenow = setInterval(starttyping.bind(this), freq);
+    // var inject = [{retain:2}, {insert: 'DANI'}, {retain: 1}, {insert: 'SAM'}]
+    // this.props.quill.updateContents({ops: inject}, 'user');
+
   }
   stopTyping() {
     window.clearInterval(this.typenow);
