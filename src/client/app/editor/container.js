@@ -90,30 +90,30 @@ class EditorContainer extends React.Component {
       })
     })
 
-    socket.on('receive', function(delta) {
-      console.log('-----------receive', delta);
-      //do math
-      var insertionIndex = JSON.parse(delta)[0].retain || 0;
-      // console.log('insertionIndex', insertionIndex);
-      var counter = 0;
-      for(var i = 0; i < context.props.myInserts.length; i++){
-        if(context.props.myInserts[i] < insertionIndex) {
-          counter++;
-        }
-      }
+    // socket.on('receive', function(delta) {
+    //   console.log('-----------receive', delta);
+    //   //do math
+    //   var insertionIndex = JSON.parse(delta)[0].retain || 0;
+    //   // console.log('insertionIndex', insertionIndex);
+    //   var counter = 0;
+    //   for(var i = 0; i < context.props.myInserts.length; i++){
+    //     if(context.props.myInserts[i] < insertionIndex) {
+    //       counter++;
+    //     }
+    //   }
 
-      var newDelta = JSON.parse(delta);
-      // console.log('newDelta', newDelta,counter)
+    //   var newDelta = JSON.parse(delta);
+    //   // console.log('newDelta', newDelta,counter)
 
 
-      var oldIndex = newDelta[0].retain;
-      newDelta[0].retain += counter;
-      quill.updateContents(newDelta, 'api');
-      // console.log('newnewDelta=====', newDelta)
+    //   var oldIndex = newDelta[0].retain;
+    //   newDelta[0].retain += counter;
+    //   quill.updateContents(newDelta, 'api');
+    //   // console.log('newnewDelta=====', newDelta)
 
-      // console.log('before client emit doned', oldIndex)
-      socket.emit('changesToApply', JSON.stringify({oldIndex:oldIndex}));
-    });
+    //   // console.log('before client emit doned', oldIndex)
+    //   socket.emit('changesToApply', JSON.stringify({oldIndex:oldIndex}));
+    // });
     socket.on('done', function(index) {
       console.log('---------index', index)
       index= JSON.parse(index).oldIndex;
@@ -158,17 +158,18 @@ class EditorContainer extends React.Component {
       if(delta.ops[0].retain === undefined){
         delta.ops.unshift({retain:0});
       }
-      console.log('new delta', delta)
+
+      console.log('my current room', context.props.room)
+      console.log('woo new delta', delta)
       var inFlightOp = {
         history: context.props.quillHistory,
         id: socket.id,
-        op: delta.ops
+        op: delta.ops,
+        room: context.props.room
       }
-      console.log('inFlightOp', inFlightOp)
-      axios.post('/addops', {inFlightOp: inFlightOp})
-      .then(function(response){
-        console.log('got response from server on inFlightOp')
-      })
+      console.log('a inFlightOp', inFlightOp, context.props.room)
+      socket.emit('add inflight op', inFlightOp)
+
     }
     // axios.post('/adduser',{user: username})
     // .then(function(user){
@@ -196,6 +197,20 @@ class EditorContainer extends React.Component {
       }
       
     });
+
+    socket.on('newOp', function(transformedOp){
+      console.log('got transformation:', transformedOp);
+      console.log('got transformation:', transformedOp.id, socket.id);
+      if(transformedOp.id !== socket.id){
+        console.log('not my own')
+        quill.updateContents(transformedOp, 'api');
+      } else {
+        //flush buffer
+        console.log('my own change')
+      }
+      // serverquill.updateContents(transformedOp, 'api');
+
+    })
 
     context.quill = quill;
 

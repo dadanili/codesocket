@@ -93,8 +93,8 @@ app.post('/savedoc', function(req, res) {
 var oTransform = function(newObj, oldObj, callback){
   console.log('newop', newOp);
   console.log('old', oldOp);
-  var newOp = newObj.op;
-  var oldOp = oldObj.op;
+  var newOp = newObj.op[0];
+  var oldOp = oldObj.op[0];
 
   var newInsertion = newOp.retain;
   var oldInsertion = oldOp.retain;
@@ -116,31 +116,9 @@ var oTransform = function(newObj, oldObj, callback){
   //ir item has retain as key
 }
 
-app.post('/addops', function(req, res){
-  console.log('inFlightOp');
-  var inFlightOp = req.body.inFlightOp;
-  console.log('pre inFlightOp', inFlightOp.history );
-  console.log('pre inFlightOp', inFlightOp );
-  console.log('pre inFlightOp', inFlightOp['history'] );
-  console.log('pre inFlightOp', history[inFlightOp.history], history[inFlightOp.history] === true);
+// app.post('/addops', function(req, res){
 
-  if(history[inFlightOp.history] !== undefined){
-    //change was there already
-      console.log('before transformed. should be obj', inFlightOp);
-    //transform
-    oTransform(inFlightOp, history[inFlightOp.history][0], function(transformed){
-      console.log('transformed. should be obj', transformed);
-      history[inFlightOp.history].push(transformed)
-    })
 
-  } else {
-    history[inFlightOp.history] = [inFlightOp];
-
-  }
-
-  console.log('post inFlightOp', history);
-  res.send(history)
-})
 
 var docExists = function(user, room, callback) {
   // callback
@@ -235,6 +213,43 @@ io.on('connection', function(socket){
     array.push.apply(array, arguments);
     socket.emit('log', array);
   }
+
+  socket.on('add inflight op', function(inFlightOp){
+
+    console.log('inFlightOp', inFlightOp, inFlightOp.history, inFlightOp.op);
+    console.log('inFlightOp', inFlightOp.history);
+
+    // // console.log('pre inFlightOp', inFlightOp.history );
+    // console.log('pre inFlightOp', inFlightOp );
+    // console.log('pre inFlightOp', inFlightOp['history'] );
+    // console.log('pre inFlightOp', history[inFlightOp.history], history[inFlightOp.history] === true);
+
+    if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
+      //change was there already
+        console.log('before transformed. should be obj', inFlightOp);
+      //transform
+      oTransform(inFlightOp, history[inFlightOp.room][inFlightOp.history][0], function(transformed){
+        console.log('transformed. should be obj', transformed);
+        console.log('room', inFlightOp.room);
+        socket.broadcast.to(inFlightOp.room).emit('newOp', transformed);
+
+        history[inFlightOp.room][inFlightOp.history].push(transformed)
+      })
+
+    } else {
+      history[inFlightOp.room] = {};
+      console.log(inFlightOp.history)
+      var parent = inFlightOp.history;
+      history[inFlightOp.room][parent] = [inFlightOp];
+      console.log('room:-', inFlightOp.room)
+      socket.broadcast.to(inFlightOp.room).emit('newOp', inFlightOp);
+
+    }
+
+    console.log('post inFlightOp', history[inFlightOp.room]);
+    // res.send(history)
+
+  })
 
   socket.on('message', function(message) {
 
