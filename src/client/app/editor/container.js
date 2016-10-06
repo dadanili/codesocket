@@ -150,6 +150,8 @@ class EditorContainer extends React.Component {
          // context.myInserts.push(0); 
         }
 
+        console.log('serverquill:', context.props.serverquill.getText());
+        console.log('quill:', context.props.quillHistory);
 
         if(context.props.serverquill.getText() === context.props.quillHistory){
           //send change to server
@@ -185,8 +187,8 @@ class EditorContainer extends React.Component {
 
 
     context.props.dispatch({
-      type: 'UPDATE_QUILL_HISTORY',
-      quillHistory: context.props.serverquill.getText()
+      type: 'UPDATE_QUILLHISTORY',
+      quillHistory: context.props.quill.getText()
     })
 
       // console.log(source);
