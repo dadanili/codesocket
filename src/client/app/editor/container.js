@@ -135,21 +135,21 @@ class EditorContainer extends React.Component {
       console.log('user-------------', source)
       if(source === 'user') {
         ///////////////////
-        if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
-          // console.log('before dispatch',context, context.props.myInserts)
-          // console.log('delta', delta.ops[0]['retain'])
-          context.props.dispatch({
-            type: 'UPDATE_EDITOR_INSERTS',
-            myInserts: context.props.myInserts.concat(delta.ops[0]['retain'])
-          })
-          // context.myInserts.push(delta.ops[0]['retain']);
-        } else {
-          context.props.dispatch({
-            type: 'UPDATE_EDITOR_INSERTS',
-            myInserts: context.props.myInserts.concat(0)
-          })
-         // context.myInserts.push(0); 
-        }
+        // if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
+        //   // console.log('before dispatch',context, context.props.myInserts)
+        //   // console.log('delta', delta.ops[0]['retain'])
+        //   context.props.dispatch({
+        //     type: 'UPDATE_EDITOR_INSERTS',
+        //     myInserts: context.props.myInserts.concat(delta.ops[0]['retain'])
+        //   })
+        //   // context.myInserts.push(delta.ops[0]['retain']);
+        // } else {
+        //   context.props.dispatch({
+        //     type: 'UPDATE_EDITOR_INSERTS',
+        //     myInserts: context.props.myInserts.concat(0)
+        //   })
+        //  // context.myInserts.push(0); 
+        // }
 
         // console.log('serverquill:', context.props.serverquill.getText());
         // console.log('quill:', context.props.quillHistory);
@@ -160,7 +160,7 @@ class EditorContainer extends React.Component {
           room: context.props.room
         }
 
-        if(context.props.serverquill.getText() === context.props.quillHistory){
+        if(context.props.serverquill.getText() === context.props.quillHistory && context.props.inFlightOp.length === 0){
           //send change to server
           
           if(delta.ops[0].retain === undefined){
@@ -222,6 +222,7 @@ class EditorContainer extends React.Component {
     context.props.socket.on('newOp', function(transformedOp){
       console.log('got transformation:', transformedOp);
       console.log('got transformation:', transformedOp.op);
+      console.log('got new thing! ==========================')
       // console.log('got transformation:', transformedOp.id, socket.id);
       if(transformedOp.op[0].retain === 0){
         console.log('delete retains 0')
@@ -232,18 +233,22 @@ class EditorContainer extends React.Component {
       }
 
       if(transformedOp.id !== socket.id){
+        console.log('not mine! ---------------------')
+
         // console.log('not my own')
         //transform buffer
-        // console.log('my buffer ', context.props.buffer)
+        console.log('my buffer ', context.props.buffer)
         if(context.props.buffer.length) {
           if(context.props.inFlightOp.length){
+            console.log('my inflight ', context.props.inFlightOp)
+
             context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
-              this.props.dispatch({
+              context.props.dispatch({
                 type: 'UPDATE_INFLIGHTOP', 
                 buffer: newBridge
               });
               context.oTransform(newTransformedOp, context.props.buffer, function(newObj, newBuffer){
-                this.props.dispatch({
+                context.props.dispatch({
                   type: 'UPDATE_BUFFER', 
                   buffer: newBuffer
                 });
@@ -260,6 +265,7 @@ class EditorContainer extends React.Component {
               })  
             })
           } else {
+            //if there is no inflight
             context.oTransform(transformedOp, context.props.buffer, function(newObj){
               if(newObj.op[0].retain === 0){
                 // console.log('delete retains')
@@ -275,11 +281,8 @@ class EditorContainer extends React.Component {
             
           }
         } else {
-
-          context.props.dispatch({
-            type: 'UPDATE_INFLIGHTOP',
-            inFlightOp: []
-          })
+          //if no buffer and other people's changes.
+          //just apply
 
           if(transformedOp.op[0].retain === 0){
             // console.log('delete retains')
@@ -293,8 +296,16 @@ class EditorContainer extends React.Component {
           // }
         }
       } else {
+        console.log('my own changes! ---------------------')
+
+        //my changes
         //flush buffer
           // console.log('my own change')
+          context.props.dispatch({
+            type: 'UPDATE_INFLIGHTOP',
+            inFlightOp: []
+          })
+
           console.log('buffer', context.props.buffer)
 
         if(context.props.buffer.length){
@@ -306,6 +317,8 @@ class EditorContainer extends React.Component {
             type: 'UPDATE_INFLIGHTOP',
             inFlightOp: [inFlightOp]
           })
+
+          console.log('flushing! ---------------------', inFlightOp)
 
           socket.emit('add inflight op', inFlightOp);
           context.props.dispatch({
@@ -328,7 +341,8 @@ class EditorContainer extends React.Component {
     context.props.dispatch({
       type: 'UPDATE_SERVERQUILL', 
       serverquill: serverquill
-    });    
+    });  
+    console.log('--------------------------i am reloaded')  
     context.props.dispatch({
       type: 'UPDATE_QUILLHISTORY', 
       quillHistory: quill.getText()
@@ -400,10 +414,28 @@ class EditorContainer extends React.Component {
     });
 
   }
-
+  type() {
+    if(this.props.quill.getText().length < 3){
+      this.props.quill.updateContents({ops: [{insert: 'abcdefghijk'}]}, 'user');
+    }
+    var starttyping = function(){
+      var char = Math.floor(Math.random()*10) + '';
+      var index = Math.floor(Math.random() * this.props.quill.getText().length);
+      var op = [{retain: index}, {insert: char}];
+      console.log('op', op)
+      this.props.quill.updateContents({ops: op}, 'user');
+    }
+    var freq = Math.floor(Math.random()*500)
+    this.typenow = setInterval(starttyping.bind(this), freq);
+  }
+  stopTyping() {
+    window.clearInterval(this.typenow);
+  }
   render() {
     return(
       <div className="body-container">
+        <button onClick={e=>this.type()}>start typing </button>
+        <button onClick={e=>this.stopTyping()}>stop typing </button>
         <EditorPresentation saveCode={this.saveCode.bind(this)}/>
         <div id='serverEditor' >
         </div>
