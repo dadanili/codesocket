@@ -107,8 +107,8 @@ var oTransform = function(newObj, oldObj, callback){
     newInsertion++;
     newOp.retain = newInsertion;
   } else {
-    oldInsertion++;
-    oldOp.retain = oldInsertion;
+    // oldInsertion++;
+    // oldOp.retain = oldInsertion;
   }
   console.log('2newop', newOp);
   console.log('2old', oldOp);

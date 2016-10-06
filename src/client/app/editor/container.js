@@ -160,7 +160,9 @@ class EditorContainer extends React.Component {
           room: context.props.room
         }
         console.log('serverquill:', context.props.serverState);
-        console.log('quillHistory:',context.props.quillHistory);
+        console.log('my change history:',context.props.quillHistory);
+        console.log('are they equal?:', context.props.serverState === context.props.quillHistory);
+
         console.log('inflight Op:', context.props.inFlightOp);
 
         if(context.props.serverState === context.props.quillHistory && context.props.inFlightOp.length === 0){
@@ -181,8 +183,9 @@ class EditorContainer extends React.Component {
           socket.emit('add inflight op', inFlightOp)
 
         } else {
+
           context.props.buffer.push(opPackage);
-          console.log('server state:', context.props.serverquill.getText());
+          console.log('server state:', context.props.serverState);
           console.log('buffer:', context.props.buffer);
 
           context.props.dispatch({
@@ -231,9 +234,11 @@ class EditorContainer extends React.Component {
       // console.log('got transformation:', transformedOp.id, socket.id);
       if(transformedOp.op[0].retain === 0){
         console.log('delete retains 0');
-        var serverOp = transformedOp.op.slice(1)
+        var serverOpRetain = 0;
+        var serverOpInsert = transformedOp.op[1].insert
       } else {
-        var serverOp = transformedOp.op.slice();
+        var serverOpRetain = transformedOp.op[0].retain;
+        var serverOpInsert = transformedOp.op[1].insert;
       }
 
       if(transformedOp.id !== socket.id){
@@ -248,9 +253,9 @@ class EditorContainer extends React.Component {
         console.log('my buffer ', context.props.buffer)
         
           if(context.props.inFlightOp.length){
-            console.log('my inflight ', context.props.inFlightOp)
+            console.log('getting transformed by inflight ', context.props.inFlightOp)
             //ot
-            context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
+            context.oTransform(transformedOp, [context.props.inFlightOp], function(newTransformedOp, newBridge){
 
               context.props.dispatch({
                 type: 'UPDATE_INCOMINGOP', 
@@ -266,6 +271,7 @@ class EditorContainer extends React.Component {
           }
           if(context.props.buffer.length){
             //ot
+            console.log('getting transformed by buffer', context.props.buffer)
             context.oTransform(context.props.incomingOp, context.props.buffer, function(newTransformedOp, newBridge){
               context.props.dispatch({
                 type: 'UPDATE_INCOMINGOP', 
@@ -288,7 +294,12 @@ class EditorContainer extends React.Component {
           quill.updateContents({ops:context.props.incomingOp.op}, 'api');
           
           console.log('before updating serverquill', serverOp)
-          
+          if(serverOpRetain === 0){
+            var serverOp = [{insert: serverOpInsert}]
+          } else {
+            var serverOp = [{retain: serverOpRetain}, {insert: serverOpInsert}]
+          }
+
           serverquill.updateContents({ops:serverOp}, 'api');
           context.props.dispatch({
             type: 'UPDATE_SERVERSTATE', 
@@ -366,11 +377,15 @@ class EditorContainer extends React.Component {
         // }
       } else {
         console.log('my own changes! ---------------------')
-        console.log('updating server', serverOp)
+        console.log('before updating server', serverOp)
 
         serverquill.updateContents({ops:serverOp}, 'api');
+        context.props.dispatch({
+          type: 'UPDATE_SERVERSTATE', 
+          serverState: serverquill.getText()
+        });
 
-        console.log('after updating server', serverquill.getText())
+        console.log('after updating server', context.props.serverState)
 
         //my changes
         //flush buffer
@@ -423,9 +438,13 @@ class EditorContainer extends React.Component {
       type: 'UPDATE_QUILLHISTORY', 
       quillHistory: quill.getText()
     });
+    context.props.dispatch({
+      type: 'UPDATE_SERVERSTATE', 
+      serverState: serverquill.getText()
+    }); 
     console.log('---serverquill text', context.props.quillHistory)
-    console.log('---serverquill text', serverquill.getText())
-    console.log('---serverquill text', serverquill.getText() === context.props.quillHistory)
+    console.log('---serverquill text', context.props.serverState)
+    console.log('---serverquill text', context.props.serverState === context.props.quillHistory)
     // case 'UPDATE_QUILLHISTORY' : {
     //   console.log('i am in reducer for quillHistory', action.quillHistory)
     //   return {
@@ -436,10 +455,13 @@ class EditorContainer extends React.Component {
   } // ComponentDidMount
 
   oTransform(newObj, bridge, callback){
-    console.log('newop', newObj);
+    console.log('newop', newObj.op[0].retain);
     console.log('old', bridge);
+    console.log('how many in buffer', bridge.length);
     var newOp = newObj.op[0];
     for(var i = 0; i < bridge.length; i++){
+      console.log('otransform came here once-----------')
+      var oldHistory = bridge[i].history;
       var oldOp = bridge[i].op[0];
       //oldop is an array of arrays of one op
       console.log('oldOp', oldOp);
@@ -453,15 +475,21 @@ class EditorContainer extends React.Component {
         newInsertion++;
         newOp.retain = newInsertion;
       } else {
+
         oldInsertion++;
         oldOp.retain = oldInsertion;
+        console.log('buffer history before', oldHistory)
+        oldHistory = oldHistory.slice(0, newInsertion) + bridge[i].op[1].insert + oldHistory.slice(newInsertion);
+        console.log('buffer history after', oldHistory)
+        bridge[i].history = oldHistory;
       }
       console.log('2buffer', bridge);
-      console.log('2op', newObj);
+      console.log('2op', newObj.op[0].retain);
 
     }
     //update buffer
     console.log('final update op', newObj)
+    console.log('final update bridge', bridge)
     callback(newObj, bridge);
 
     // if(oldOp.)
@@ -475,9 +503,7 @@ class EditorContainer extends React.Component {
     console.log('contents',contents);
     console.log('gettext',gettext);
     console.log('serverquill', this.props.serverquill)
-    var serverquillcontent =  this.props.serverquill.getContents();
     var serverquilltext =  this.props.serverquill.getText();
-    console.log('serverquill', serverquillcontent);
     console.log('compare server to client', serverquilltext === gettext)
 
     $.ajax({
