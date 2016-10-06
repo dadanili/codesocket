@@ -21,16 +21,16 @@ class EditorContainer extends React.Component {
   }
 
   componentWillUnmount() {
-    console.log('does editor unmount');
+    // console.log('does editor unmount');
   }
 
   componentDidMount() {
     var context = this; 
-    console.log('----------context', context, context.props.myInserts);
+    // console.log('----------context', context, context.props.myInserts);
     var socket = this.props.socket;
     // var socket = io.connect();
 
-    console.log('socket inside editor container', socket);
+    // console.log('socket inside editor container', socket);
     // console.log('didmount woohooo');
     // var socket = io();
     var quill = new Quill('#editor', {
@@ -44,7 +44,7 @@ class EditorContainer extends React.Component {
       });
 
     var serverquill = new Quill('#serverEditor')
-    console.log('serverquill', serverquill);
+    // console.log('serverquill', serverquill);
 
 
     document.getElementsByClassName('ql-code-block')[0].click();
@@ -54,7 +54,7 @@ class EditorContainer extends React.Component {
     });
 
     socket.on('fetched live', function(latest){
-      console.log('fetched!!!', latest, latest.ops)
+      // console.log('fetched!!!', latest, latest.ops)
       // console.log('got last elem', latest.ops[latest.ops.length -1].insert)
       // delete latest.ops[latest.ops.length -1].insert;
       // var delta = {
@@ -64,7 +64,7 @@ class EditorContainer extends React.Component {
     });
 
     socket.on('found latest doc', function(doc){
-      console.log('latest doc', doc);
+      // console.log('latest doc', doc);
       // var delta = {
       //   ops: [{insert: doc['doc_content']}]
       // }
@@ -75,9 +75,9 @@ class EditorContainer extends React.Component {
     })
 
     socket.on('fetch live version', function(requestId){
-      console.log('in fetch latest')
+      // console.log('in fetch latest')
       var delta = quill.getContents();
-      console.log('fetchd', delta)
+      // console.log('fetchd', delta)
       var response = {
         delta: delta,
         requestId: requestId
@@ -115,7 +115,7 @@ class EditorContainer extends React.Component {
     //   socket.emit('changesToApply', JSON.stringify({oldIndex:oldIndex}));
     // });
     socket.on('done', function(index) {
-      console.log('---------index', index)
+      // console.log('---------index', index)
       index= JSON.parse(index).oldIndex;
       // console.log('in done got index:', index)
       var removeIndex = context.props.myInserts.indexOf(index);
@@ -126,17 +126,18 @@ class EditorContainer extends React.Component {
       // console.log('newmyInserts', context.myInserts);
 
     });
-    console.log('omg', context)
+
     quill.on('text-change', function(delta,olddelta,source) {
       // console.log('get delta', delta.ops[0],delta.ops[1])
-      console.log('omg-------------', delta)
+      // console.log('omg-------------', delta)
       var arr = [];
 
-      console.log('user-------------', source)
+      // console.log('user-------------', source)
       if(source === 'user') {
+        ///////////////////
         if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
-          console.log('before dispatch',context, context.props.myInserts)
-          console.log('delta', delta.ops[0]['retain'])
+          // console.log('before dispatch',context, context.props.myInserts)
+          // console.log('delta', delta.ops[0]['retain'])
           context.props.dispatch({
             type: 'UPDATE_EDITOR_INSERTS',
             myInserts: context.props.myInserts.concat(delta.ops[0]['retain'])
@@ -150,8 +151,8 @@ class EditorContainer extends React.Component {
          // context.myInserts.push(0); 
         }
 
-        console.log('serverquill:', context.props.serverquill.getText());
-        console.log('quill:', context.props.quillHistory);
+        // console.log('serverquill:', context.props.serverquill.getText());
+        // console.log('quill:', context.props.quillHistory);
         var opPackage = {
           history: context.props.quillHistory,
           id: socket.id,
@@ -166,19 +167,19 @@ class EditorContainer extends React.Component {
             delta.ops.unshift({retain:0});
           }
 
-          console.log('my current room', context.props.room)
-          console.log('woo new delta', delta)
+          // console.log('my current room', context.props.room)
+          // console.log('woo new delta', delta)
           var inFlightOp = opPackage;
           context.props.dispatch({
             type: 'UPDATE_INFLIGHTOP',
             inFlightOp: inFlightOp
           })
-          console.log('a inFlightOp', context.props.inFlightOp)
+          // console.log('a inFlightOp', context.props.inFlightOp)
           socket.emit('add inflight op', context.props.inFlightOp)
 
         } else {
           context.props.buffer.push(opPackage);
-          console.log('props:', context.props.buffer);
+          // console.log('props:', context.props.buffer);
           context.props.dispatch({
             type: 'UPDATE_BUFFER',
             buffer: context.props.buffer
@@ -220,24 +221,44 @@ class EditorContainer extends React.Component {
 
     context.props.socket.on('newOp', function(transformedOp){
       console.log('got transformation:', transformedOp.op);
-      console.log('got transformation:', transformedOp.id, socket.id);
+      // console.log('got transformation:', transformedOp.id, socket.id);
       if(transformedOp.op[0].retain === 0){
-        console.log('delete retains')
-         transformedOp.op.shift();
+        console.log('delete retains 0')
+        serverquill.updateContents({ops:transformedOp.op.slice(1)}, 'api');
+
+      } else {
+        serverquill.updateContents({ops:transformedOp.op}, 'api');
       }
+
       if(transformedOp.id !== socket.id){
-        console.log('not my own')
+        // console.log('not my own')
         //transform buffer
-        quill.updateContents({ops:transformedOp.op}, 'api');
+        // console.log('my buffer ', context.props.buffer)
+        if(context.props.buffer.length) {
+          context.oTransform(transformedOp, context.props.buffer, function(newObj){
+            if(newObj.op[0].retain === 0){
+              // console.log('delete retains')
+               newObj.op.shift();
+            }
+            quill.updateContents({ops:newObj.op}, 'api');
+          })
+        } else {
+          if(transformedOp.op[0].retain === 0){
+            // console.log('delete retains')
+            transformedOp.op.shift();
+          }
+          quill.updateContents({ops:transformedOp.op}, 'api');
+
+        }
       } else {
         //flush buffer
-          console.log('my own change')
+          // console.log('my own change')
           console.log('buffer', context.props.buffer)
 
         if(context.props.buffer.length){
-          console.log('in processing buffer')
+          // console.log('in processing buffer')
           var inFlightOp = context.props.buffer[0];
-          console.log('in flight', inFlightOp);
+          // console.log('in flight', inFlightOp);
 
           context.props.dispatch({
             type: 'UPDATE_INFLIGHTOP',
@@ -252,7 +273,6 @@ class EditorContainer extends React.Component {
         }
 
       }
-      serverquill.updateContents({ops:transformedOp.op}, 'api');
 
     })
 
@@ -282,6 +302,42 @@ class EditorContainer extends React.Component {
     //   }
     // }
   } // ComponentDidMount
+
+  oTransform(newObj, buffer, callback){
+    console.log('newop', newObj);
+    console.log('old', buffer);
+    var newOp = newObj.op[0];
+    for(var i = 0; i < buffer.length; i++){
+      var oldOp = buffer[i][0];
+      console.log('oldOp', oldOp);
+
+      var newInsertion = newOp.retain;
+      var oldInsertion = oldOp.retain;
+
+      console.log('newInsertion', newInsertion);
+      console.log('oldinsertion', oldInsertion);
+      if(newInsertion >= oldInsertion){
+        newInsertion++;
+        newOp.retain = newInsertion;
+      } else {
+        oldInsertion++;
+        oldOp.retain = oldInsertion;
+      }
+      console.log('2buffer', buffer);
+      console.log('2op', newObj);
+
+    }
+    //update buffer
+    console.log('final update op', newObj)
+    callback(newObj);
+    this.props.dispatch({
+      type: 'UPDATE_BUFFER', 
+      buffer: buffer
+    });
+    // if(oldOp.)
+    //if item has insert as key
+    //ir item has retain as key
+  }
   saveCode() {
     var contents = this.props.quill.getContents();
     var gettext = this.props.quill.getText();
