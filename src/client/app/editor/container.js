@@ -259,8 +259,8 @@ class EditorContainer extends React.Component {
           buffer: buffer.slice(1)
         })
       }
-    }
-    
+    })
+
     context.props.socket.on('newOp', function(transformedOp){
       console.log('got transformation:', transformedOp);
       console.log('got transformation:', transformedOp.op);
@@ -305,6 +305,7 @@ class EditorContainer extends React.Component {
               });
 
             })
+
           }
           if(context.props.buffer.length){
             //ot
@@ -327,6 +328,7 @@ class EditorContainer extends React.Component {
             // console.log('delete retains')
              context.props.incomingOp.op.shift();
           }
+
           console.log('after finding 0 context.props.incomingOp.op', context.props.incomingOp.op)
           quill.updateContents({ops:context.props.incomingOp.op}, 'api');
           
@@ -339,7 +341,9 @@ class EditorContainer extends React.Component {
             serverState: serverquill.getText()
           });
           // apply result to 
-
+          if(context.props.buffer.length){
+            socket.emit('add inflight op', context.props.buffer[0]);
+          }
 
         //   console.log('incoming geting transformed-------------')
         //   if(context.props.inFlightOp.length){
@@ -423,10 +427,10 @@ class EditorContainer extends React.Component {
         //my changes
         //flush buffer
           // console.log('my own change')
-          context.props.dispatch({
-            type: 'UPDATE_INFLIGHTOP',
-            inFlightOp: []
-          })
+        context.props.dispatch({
+          type: 'UPDATE_INFLIGHTOP',
+          inFlightOp: []
+        })
         if(context.props.buffer.length){
           socket.emit('add inflight op', context.props.buffer[0]);
         }

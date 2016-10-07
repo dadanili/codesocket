@@ -66,7 +66,7 @@ var history = {
   // }
 }
 
-var serverState = '';
+var serverState = '\n';
 
     // webpackDevHelper = require('./index.dev.js');
 useWebpackMiddleware(app);
@@ -131,15 +131,31 @@ var oTransform = function(newObj, oldObj, callback){
 // app.post('/addops', function(req, res){
 
 var isValid = function(operation){
+  console.log('is valide operation', operation, serverState)
   if(operation.history === serverState){
+    console.log('true')
     return true;
   } else {
+    console.log('false')
     return false;
   }
 }
 
+var updateServerState = function(operation){
+  var retain = operation.op[0].retain;
+  var insert = operation.op[1].insert;
+  console.log('before serverState', serverState);
+  console.log('retain', retain);
+  console.log('insert', insert);
+  if(serverState=== '\n'){
+    serverState = insert;
+  }else {
+    serverState = serverState.slice(0, retain) + insert + serverState.slice(retain);
+  }
+  console.log('after serverState', serverState);
+}
+
 var docExists = function(user, room, callback) {
-  // callback
   helper.docExists(user, room, callback);
 }
 
@@ -239,6 +255,7 @@ io.on('connection', function(socket){
     if(isValid(inFlightOp)){
       io.to(socket.id).emit('clear inflight', inFlightOp);
       io.to(socket.id).emit('flush buffer', inFlightOp);
+      updateServerState(inFlightOp);
       if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
         //change was there already
           console.log('before transformed. should be obj', inFlightOp);
