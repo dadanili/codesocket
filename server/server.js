@@ -147,8 +147,9 @@ var updateServerState = function(operation){
   console.log('before serverState', serverState);
   console.log('retain', retain);
   console.log('insert', insert);
-  if(serverState=== '\n'){
-    serverState = insert;
+  if(serverState === '\n'){
+    console.log('in true condition')
+    serverState = insert + '\n';
   }else {
     serverState = serverState.slice(0, retain) + insert + serverState.slice(retain);
   }
@@ -253,8 +254,8 @@ io.on('connection', function(socket){
     console.log('inFlightOp', inFlightOp);
     // console.log('pre History', history)
     if(isValid(inFlightOp)){
+      console.log('in valid, about to emit clear inflight op')
       io.to(socket.id).emit('clear inflight', inFlightOp);
-      io.to(socket.id).emit('flush buffer', inFlightOp);
       updateServerState(inFlightOp);
       if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
         //change was there already
@@ -292,6 +293,7 @@ io.on('connection', function(socket){
 
       }
     } else {
+      console.log('in rejected', inFlightOp, serverState)
       io.to(socket.id).emit('rejected op', inFlightOp)
     }
 

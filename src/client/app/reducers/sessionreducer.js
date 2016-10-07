@@ -10,7 +10,8 @@ const sessionInitialState = {
   quillHistory: '',
   inFlightOp: [],
   incomingOp: {},
-  serverState: ''
+  serverState: '',
+  rejectedOp: {}
   // serverEditor: []
 }
 
@@ -22,6 +23,13 @@ export default function sessionReducer (state = sessionInitialState, action) {
        socket: action.socket
      }
     }  
+    case 'UPDATE_REJECTEDOP' : {
+     return {
+       ...state, 
+       rejectedOp: action.rejectedOp
+     }
+    }  
+
     case 'UPDATE_SERVERSTATE' : {
      return {
        ...state, 
