@@ -394,6 +394,10 @@ class EditorContainer extends React.Component {
         oldOp.retain = oldInsertion;
         console.log('buffer history before', oldHistory)
       }
+      if(newInsertion === oldHistory.length){
+        console.log('newInsertion is same as oldhistory');
+        newInsertion--;
+      }
       oldHistory = oldHistory.slice(0, newInsertion) + newObj.op[1].insert + oldHistory.slice(newInsertion);
       console.log('buffer history after', oldHistory)
       bridge[i].history = oldHistory;
