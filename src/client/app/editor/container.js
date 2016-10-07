@@ -234,6 +234,33 @@ class EditorContainer extends React.Component {
         inFlightOp: []
       });
     })
+
+    context.props.socket.on('flush buffer', function(inFlightOp){
+
+      var buffer = context.props.buffer.slice()
+      console.log('buffer', buffer)
+      console.log('buffer length', buffer.length)
+
+      if(buffer.length){
+        console.log('i am in buffer length')
+        // console.log('in processing buffer')
+        var inFlightOp = buffer[0];
+        // console.log('in flight', inFlightOp);
+
+        context.props.dispatch({
+          type: 'UPDATE_INFLIGHTOP',
+          inFlightOp: [inFlightOp]
+        })
+
+        console.log('flushing! ---------------------', inFlightOp)
+
+        context.props.dispatch({
+          type: 'UPDATE_BUFFER',
+          buffer: buffer.slice(1)
+        })
+      }
+    }
+    
     context.props.socket.on('newOp', function(transformedOp){
       console.log('got transformation:', transformedOp);
       console.log('got transformation:', transformedOp.op);
@@ -400,31 +427,16 @@ class EditorContainer extends React.Component {
             type: 'UPDATE_INFLIGHTOP',
             inFlightOp: []
           })
-          var buffer = context.props.buffer.slice()
-          console.log('buffer', buffer)
-          console.log('buffer length', buffer.length)
-
-        if(buffer.length){
-          console.log('i am in buffer length')
-          // console.log('in processing buffer')
-          var inFlightOp = buffer[0];
-          // console.log('in flight', inFlightOp);
-
-          context.props.dispatch({
-            type: 'UPDATE_INFLIGHTOP',
-            inFlightOp: [inFlightOp]
-          })
-
-          console.log('flushing! ---------------------', inFlightOp)
-
-          socket.emit('add inflight op', inFlightOp);
-          context.props.dispatch({
-            type: 'UPDATE_BUFFER',
-            buffer: buffer.slice(1)
-          })
+        if(context.props.buffer.length){
+          socket.emit('add inflight op', context.props.buffer[0]);
         }
 
+          //////////////
+
+        /////////////
+
       }
+
 
     })
 

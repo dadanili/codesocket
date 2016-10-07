@@ -56,8 +56,18 @@ var httpsServer = https.createServer({
 }, app);
 
 var history = {
-  // 'history1': []
+  // 'room1': {
+//      'history1': [{},{}],
+//      'history2': [{},{}],
+  // }
+    // 'room2': {
+//      'history1': [{},{}],
+//      'history2': [{},{}],
+  // }
 }
+
+var serverState = '';
+
     // webpackDevHelper = require('./index.dev.js');
 useWebpackMiddleware(app);
 
@@ -120,7 +130,13 @@ var oTransform = function(newObj, oldObj, callback){
 
 // app.post('/addops', function(req, res){
 
-
+var isValid = function(operation){
+  if(operation.history === serverState){
+    return true;
+  } else {
+    return false;
+  }
+}
 
 var docExists = function(user, room, callback) {
   // callback
@@ -220,42 +236,46 @@ io.on('connection', function(socket){
     console.log('----------------------started')
     console.log('inFlightOp', inFlightOp);
     // console.log('pre History', history)
-    io.to(socket.id).emit('clear inflight', inFlightOp);
+    if(isValid(inFlightOp)){
+      io.to(socket.id).emit('clear inflight', inFlightOp);
+      io.to(socket.id).emit('flush buffer', inFlightOp);
+      if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
+        //change was there already
+          console.log('before transformed. should be obj', inFlightOp);
+        //transform
+        oTransform(inFlightOp, history[inFlightOp.room][inFlightOp.history][0], function(transformed){
+          // console.log('transformed. should be obj', transformed);
+          // console.log('room', inFlightOp.room);
+          console.log('----------------------emited')
+          history[inFlightOp.room][inFlightOp.history].push(transformed)
+          io.sockets.in(inFlightOp.room).emit('newOp', transformed);
 
-    if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
-      //change was there already
-        console.log('before transformed. should be obj', inFlightOp);
-      //transform
-      oTransform(inFlightOp, history[inFlightOp.room][inFlightOp.history][0], function(transformed){
-        // console.log('transformed. should be obj', transformed);
-        // console.log('room', inFlightOp.room);
-        console.log('----------------------emited')
-        history[inFlightOp.room][inFlightOp.history].push(transformed)
-        io.sockets.in(inFlightOp.room).emit('newOp', transformed);
+        })
 
-      })
+      } else if (history[inFlightOp.room] === undefined) {
+        console.log('no room yet')
+        history[inFlightOp.room] = {};
+        // console.log(inFlightOp.history)
+        var parent = inFlightOp.history;
+        history[inFlightOp.room][parent] = [inFlightOp];
+        // console.log('room:-', inFlightOp.room)
+          console.log('----------------------emited')
 
-    } else if (history[inFlightOp.room] === undefined) {
-      console.log('no room yet')
-      history[inFlightOp.room] = {};
-      // console.log(inFlightOp.history)
-      var parent = inFlightOp.history;
-      history[inFlightOp.room][parent] = [inFlightOp];
-      // console.log('room:-', inFlightOp.room)
-        console.log('----------------------emited')
+        io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
+      } else {
+        console.log('room but no parent/conflict')
+        var parent = inFlightOp.history;
+        history[inFlightOp.room][parent] = [inFlightOp];
+        // console.log('room:-', inFlightOp.room)
+          console.log('----------------------emited')
 
-      io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
+        io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
+
+        // socket.broadcast.to(inFlightOp.room).emit('newOp', inFlightOp);
+
+      }
     } else {
-      console.log('room but no parent/conflict')
-      var parent = inFlightOp.history;
-      history[inFlightOp.room][parent] = [inFlightOp];
-      // console.log('room:-', inFlightOp.room)
-        console.log('----------------------emited')
-
-      io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
-
-      // socket.broadcast.to(inFlightOp.room).emit('newOp', inFlightOp);
-
+      io.to(socket.id).emit('rejected op', inFlightOp)
     }
 
     // console.log('post inFlightOp', history[inFlightOp.room]);
