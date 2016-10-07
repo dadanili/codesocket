@@ -134,25 +134,6 @@ class EditorContainer extends React.Component {
 
       console.log('user-------------', source)
       if(source === 'user') {
-        ///////////////////
-        // if(delta.ops[1] && delta.ops[1]['insert'] !== undefined) {
-        //   // console.log('before dispatch',context, context.props.myInserts)
-        //   // console.log('delta', delta.ops[0]['retain'])
-        //   context.props.dispatch({
-        //     type: 'UPDATE_EDITOR_INSERTS',
-        //     myInserts: context.props.myInserts.concat(delta.ops[0]['retain'])
-        //   })
-        //   // context.myInserts.push(delta.ops[0]['retain']);
-        // } else {
-        //   context.props.dispatch({
-        //     type: 'UPDATE_EDITOR_INSERTS',
-        //     myInserts: context.props.myInserts.concat(0)
-        //   })
-        //  // context.myInserts.push(0); 
-        // }
-
-        // console.log('serverquill:', context.props.serverquill.getText());
-        // console.log('quill:', context.props.quillHistory);
         var opPackage = {
           history: context.props.quillHistory,
           id: socket.id,
@@ -180,50 +161,28 @@ class EditorContainer extends React.Component {
             inFlightOp: [inFlightOp]
           })
           console.log('a inFlightOp', inFlightOp)
-          socket.emit('add inflight op', inFlightOp)
+          console.log('calling---------------------------------------')
+          socket.emit('add inflight op', JSON.stringify(inFlightOp))
 
         } else {
 
-          context.props.buffer.push(opPackage);
+          var newBufferString = JSON.stringify(context.props.buffer);
+          var newBufferObj = JSON.parse(newBufferString);
+          newBufferObj.push(opPackage);
           console.log('server state:', context.props.serverState);
-          console.log('buffer:', context.props.buffer);
+          console.log('buffer:', newBufferObj);
 
           context.props.dispatch({
             type: 'UPDATE_BUFFER',
-            buffer: context.props.buffer
+            buffer: newBufferObj
           })
         }
       };
-      // context.props.serverquill.updateContents(delta)
-      // console.log('newquill', serverquill.getText())
-      // console.log('myInserts', context.myInserts);
-////////////////////server////////////////////
-    
 
-    // axios.post('/adduser',{user: username})
-    // .then(function(user){
-    //   console.log('new user saved');
-    //   callback(user);
-    // })
-
-
-    context.props.dispatch({
-      type: 'UPDATE_QUILLHISTORY',
-      quillHistory: context.props.quill.getText()
-    })
-
-      // console.log(source);
-      // if(source !== 'api') {
-      //   for(var i = 0; i < 2; i++) {
-      //     if(delta.ops[i] !== undefined) {
-      //       // console.log(delta.ops[i])
-      //       arr.push(delta.ops[i])
-      //     }
-      //   }
-      //   socket.emit('typed', JSON.stringify(arr));
-      //   arr = [];
-
-      // }
+      context.props.dispatch({
+        type: 'UPDATE_QUILLHISTORY',
+        quillHistory: context.props.quill.getText()
+      })
       
     });
 
@@ -234,34 +193,6 @@ class EditorContainer extends React.Component {
         inFlightOp: []
       });
     })
-
-    // context.props.socket.on('flush buffer', function(inFlightOp){
-    //   console.log('trying to flush buffer', inFlightOp)
-    //   var buffer = context.props.buffer.slice()
-    //   console.log('buffer', buffer)
-    //   console.log('buffer length', buffer.length)
-
-    //   if(buffer.length){
-    //     console.log('i am in buffer length')
-    //     // console.log('in processing buffer')
-    //     var inFlightOp = buffer[0];
-    //     // console.log('in flight', inFlightOp);
-
-    //     context.props.dispatch({
-    //       type: 'UPDATE_INFLIGHTOP',
-    //       inFlightOp: [inFlightOp]
-    //     })
-
-    //     console.log('flushing! ---------------------', inFlightOp)
-
-    //     context.props.dispatch({
-    //       type: 'UPDATE_BUFFER',
-    //       buffer: buffer.slice(1)
-    //     })
-    //   } else {
-    //     console.log('no buffer yet')
-    //   }
-    // })
 
     context.props.socket.on('newOp', function(transformedOp){
       console.log('got transformation:', transformedOp);
@@ -283,8 +214,6 @@ class EditorContainer extends React.Component {
       if(transformedOp.id !== socket.id){
         console.log('not mine! ---------------------')
 
-        // console.log('not my own')
-        //transform buffer
         context.props.dispatch({
           type: 'UPDATE_INCOMINGOP', 
           incomingOp: transformedOp
@@ -294,7 +223,13 @@ class EditorContainer extends React.Component {
           if(context.props.inFlightOp.length){
             console.log('getting transformed by inflight ', context.props.inFlightOp)
             //ot
-            context.oTransform(transformedOp, context.props.inFlightOp, function(newTransformedOp, newBridge){
+            var transformedOpString = JSON.stringify(transformedOp);
+            var transformedOp = JSON.parse(transformedOpString)
+
+            var inflightString = JSON.stringify(context.props.inFlightOp);
+            var inflight = JSON.parse(inflightString)
+
+            context.oTransform(transformedOp, inflight, function(newTransformedOp, newBridge){
 
               context.props.dispatch({
                 type: 'UPDATE_INCOMINGOP', 
@@ -305,14 +240,19 @@ class EditorContainer extends React.Component {
                 type: 'UPDATE_INFLIGHTOP', 
                 inFlightOp: newBridge
               });
-
             })
-
           }
+
           if(context.props.buffer.length){
             //ot
             console.log('getting transformed by buffer', context.props.buffer)
-            context.oTransform(context.props.incomingOp, context.props.buffer, function(newTransformedOp, newBridge){
+            var incomingString = JSON.stringify(context.props.incomingOp);
+            var incoming = JSON.parse(incomingString);
+
+            var bufferString = JSON.stringify(context.props.buffer);
+            var buffer = JSON.parse(bufferString);
+
+            context.oTransform(incoming, buffer, function(newTransformedOp, newBridge){
               context.props.dispatch({
                 type: 'UPDATE_INCOMINGOP', 
                 incomingOp: newTransformedOp
@@ -327,7 +267,6 @@ class EditorContainer extends React.Component {
           console.log('before finding 0 context.props.incomingOp.op', context.props.incomingOp.op)
 
           if(context.props.incomingOp.op[0].retain === 0){
-            // console.log('delete retains')
              context.props.incomingOp.op.shift();
           }
 
@@ -344,7 +283,8 @@ class EditorContainer extends React.Component {
       });
 
       //flush buffer
-      var buffer = context.props.buffer.slice()
+      var bufferString = JSON.stringify(context.props.buffer);
+      var buffer = JSON.parse(bufferString);
 
       console.log('before flushing buffer:', context.props.buffer, buffer)
       console.log('buffer length:', context.props.buffer.length, buffer.length)
@@ -358,62 +298,44 @@ class EditorContainer extends React.Component {
           inFlightOp: [inFlightOp]
         })
         console.log('emit after flush buffer', inFlightOp)
-        socket.emit('add inflight op', inFlightOp);
+        console.log('calling---------------------------------------')
+
+        socket.emit('add inflight op', JSON.stringify(inFlightOp));
 
         context.props.dispatch({
           type: 'UPDATE_BUFFER',
           buffer: buffer.slice(1)
         })
       }
+    })
+    socket.on('rejected op', function(operation){
+      //add to buffer and update
 
-      socket.on('rejected op', function(operation){
-        //add to buffer and update
+      console.log('in rejected op ===================', operation)
+      console.log('inflightop---------->', context.props.inFlightOp)
 
-        console.log('in rejected op ===================', operation)
-        console.log('inflightop', context.props.inFlightOp)
-
-        console.log('in flight retain:', context.props.inFlightOp[0].op[0].retain)
-        if(context.props.inFlightOp.length === 0){
-          debugger;
+      if(context.props.inFlightOp.length){
+        var insert = context.props.inFlightOp[0].op[1].insert;
+        var retain = context.props.inFlightOp[0].op[0].retain;
+        var history = context.props.inFlightOp[0].history;
+        var op = [{retain: retain}, {insert: insert}]
+        var opPackage = {
+          history: history,
+          id: socket.id,
+          op: op,
+          room: context.props.room
         }
-        if(context.props.inFlightOp[0].op[0].retain !== operation.op[0].retain) {
-
-          context.props.dispatch({
-            type: 'UPDATE_REJECTEDOP',
-            rejectedOp: context.props.inFlightOp[0]
-          })
-          console.log('about to reemit after rejection',context.props.rejectedOp)
-          socket.emit('add inflight op', context.props.rejectedOp)
-        } else {
-          console.log('-----------rejected return in flight to buffer ')
-          console.log('new inFlightOp', inFlightOp)
-          if(context.props.buffer.length){
-            var inFlightOp = context.props.inFlightOp.slice();
-            console.log('new', inFlightOp.concat(context.props.buffer))
-            context.props.dispatch({
-              type: 'UPDATE_BUFFER',
-              buffer: inFlightOp.concat(context.props.buffer)
-            })
-          } else {
-            context.props.dispatch({
-              type: 'UPDATE_BUFFER',
-              buffer: context.props.rejectedOp
-            })
-          }
-
-          //clear inflight
-          context.props.dispatch({
-            type: 'UPDATE_INFLIGHTOP',
-            inFlightOp: []
-          })
-
-
-        }
-        
-
-      })
+        context.props.dispatch({
+          type: 'UPDATE_REJECTEDOP',
+          rejectedOp: opPackage
+        })
+        console.log('opPackage', opPackage);
+        console.log('opPackage', context.props.opPackage);
+        socket.emit('add inflight op', JSON.stringify(opPackage));
+      }
 
     })
+
 
     context.quill = quill;
 
@@ -448,7 +370,7 @@ class EditorContainer extends React.Component {
   } // ComponentDidMount
 
   oTransform(newObj, bridge, callback){
-    console.log('newop', newObj.op[0].retain);
+    console.log('newObj', newObj);
     console.log('old', bridge);
     console.log('how many in buffer', bridge.length);
     var newOp = newObj.op[0];
@@ -468,14 +390,13 @@ class EditorContainer extends React.Component {
         newInsertion++;
         newOp.retain = newInsertion;
       } else {
-
         oldInsertion++;
         oldOp.retain = oldInsertion;
         console.log('buffer history before', oldHistory)
-        oldHistory = oldHistory.slice(0, newInsertion) + newObj.op[1].insert + oldHistory.slice(newInsertion);
-        console.log('buffer history after', oldHistory)
-        bridge[i].history = oldHistory;
       }
+      oldHistory = oldHistory.slice(0, newInsertion) + newObj.op[1].insert + oldHistory.slice(newInsertion);
+      console.log('buffer history after', oldHistory)
+      bridge[i].history = oldHistory;
       console.log('2buffer', bridge);
       console.log('2op', newObj.op[0].retain);
 
