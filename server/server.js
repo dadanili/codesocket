@@ -147,10 +147,11 @@ var updateServerState = function(operation){
   console.log('before serverState', serverState);
   console.log('retain', retain);
   console.log('insert', insert);
+
   if(serverState === '\n'){
     console.log('in true condition')
     serverState = insert + '\n';
-  }else {
+  } else {
     serverState = serverState.slice(0, retain) + insert + serverState.slice(retain);
   }
   console.log('after serverState', serverState);
@@ -185,6 +186,7 @@ app.get('/roomExists', function(req, res){
     });
 
   })
+
   app.post('/addroomtouser', function(req, res){
     var room = req.body.room;
     var user = req.body.user;
@@ -193,7 +195,6 @@ app.get('/roomExists', function(req, res){
       res.send(result);
     });
   })
-
 
   // helper.addDocToDB(req.query.user, req.query.room, function(newDoc){
   //   helper.addDoctoUser(req.query.user, req.query.room, function(result){
@@ -251,60 +252,58 @@ io.on('connection', function(socket){
   }
 
   socket.on('add inflight op', function(inFlightOp){
-    console.log('----------------------started')
+    // console.log('----------------------started')
     var inFlightOp = JSON.parse(inFlightOp)
-    console.log('inFlightOp', inFlightOp);
+    // console.log('inFlightOp', inFlightOp);
     // console.log('pre History', history)
     if(isValid(inFlightOp)){
-      console.log('in valid, about to emit clear inflight op')
+
+      // console.log('in valid, about to emit clear inflight op')
       io.to(socket.id).emit('clear inflight', inFlightOp);
+
       if(history[inFlightOp.room] !== undefined && history[inFlightOp.room][inFlightOp.history] !== undefined){
         //change was there already
-          console.log('before transformed. should be obj', inFlightOp);
+        // console.log('before transformed. should be obj', inFlightOp);
         //transform
         oTransform(inFlightOp, history[inFlightOp.room][inFlightOp.history][0], function(transformed){
           // console.log('transformed. should be obj', transformed);
           // console.log('room', inFlightOp.room);
           updateServerState(inFlightOp);
-          console.log('----------------------emited')
+          // console.log('----------------------emited')
           history[inFlightOp.room][inFlightOp.history].push(transformed)
           io.sockets.in(inFlightOp.room).emit('newOp', transformed);
-
         })
 
       } else if (history[inFlightOp.room] === undefined) {
-        console.log('no room yet')
+        // console.log('no room yet')
         history[inFlightOp.room] = {};
         // console.log(inFlightOp.history)
-        var parent = inFlightOp.history;
-        history[inFlightOp.room][parent] = [inFlightOp];
+        var myhistory = inFlightOp.history;
+        history[inFlightOp.room][myhistory] = [inFlightOp];
         // console.log('room:-', inFlightOp.room)
           console.log('----------------------emited')
         updateServerState(inFlightOp);
         io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
+
       } else {
-        console.log('room but no parent/conflict')
-        var parent = inFlightOp.history;
-        history[inFlightOp.room][parent] = [inFlightOp];
+        console.log('room but no myhistory/conflict')
+        var myhistory = inFlightOp.history;
+        history[inFlightOp.room][myhistory] = [inFlightOp];
         // console.log('room:-', inFlightOp.room)
           console.log('----------------------emited')
         updateServerState(inFlightOp);
         io.sockets.in(inFlightOp.room).emit('newOp', inFlightOp);
       }
+      
     } else {
       console.log('-------------in rejected-----------', inFlightOp, serverState)
       io.to(socket.id).emit('rejected op', inFlightOp)
     }
-
-    // console.log('post inFlightOp', history[inFlightOp.room]);
-    // res.send(history)
-
   })
 
   socket.on('message', function(message) {
 
     log('Client said: ', message);
-
     // clientRooms is an array of all the rooms I am in.
     var clientRooms = Object.keys(socket.rooms).filter(function(aRoom) {
       return (aRoom === socket.id) ? false : true;
